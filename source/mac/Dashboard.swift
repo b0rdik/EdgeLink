@@ -6,6 +6,8 @@ final class DashboardState: ObservableObject {
     @Published var pcIP = UserDefaults.standard.string(forKey: "pcIP") ?? ""
     @Published var automatic = UserDefaults.standard.object(forKey: "automatic") as? Bool ?? true
     @Published var autoStart = UserDefaults.standard.object(forKey: "autoStart") as? Bool ?? true
+    @Published var muteMac = UserDefaults.standard.object(forKey: "muteMac") as? Bool ?? true
+    @Published var audioHint = "Динамики Mac работают обычно."
     @Published var ethernet: [EthernetAddress] = []
     @Published var selectedEthernet = ""
     @Published var displays: [(UInt32, String)] = []
@@ -29,6 +31,7 @@ final class DashboardState: ObservableObject {
     @Published var tab = UserDefaults.standard.bool(forKey: "setupCompleted") ? 0 : 1
     @Published var step = 0
     var onInput: () -> Void = {}, onAudio: () -> Void = {}, onCopy: () -> Void = {}, onExport: () -> Void = {}, onToggle: () -> Void = {}, onUpdate: () -> Void = {}, onRefresh: () -> Void = {}, onCheck: () -> Void = {}, onRepair: () -> Void = {}, onRestart: () -> Void = {}, onRetryKey: () -> Void = {}
+    var onMuteChange: () -> Void = {}
     var stateTitle: String { controlled ? "Управление на Mac" : connected ? "Всё подключено" : running ? "Mac ждёт ваш ПК" : "Давайте подключимся" }
     var ready: Bool { inputAllowed && audioAllowed && pairingAvailable && !localIP.isEmpty }
     var canContinue: Bool { step == 0 ? !localIP.isEmpty : step == 1 ? inputAllowed && audioAllowed : step == 2 ? pairingExported || connected : true }
@@ -70,6 +73,7 @@ struct Dashboard: View {
         .onChange(of: state.selectedEthernet) { _, _ in state.onRefresh() }
         .onChange(of: state.automatic) { _, _ in state.onRefresh() }
         .onChange(of: state.autoStart) { _, _ in state.onRefresh() }
+        .onChange(of: state.muteMac) { _, value in UserDefaults.standard.set(value, forKey: "muteMac"); state.onMuteChange() }
         .animation(.easeInOut(duration: 0.18), value: state.step)
     }
     private var home: some View {
@@ -92,7 +96,7 @@ struct Dashboard: View {
                 }.frame(minWidth: 0, maxWidth: .infinity, alignment: .leading).card()
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Звук в наушниках ПК", systemImage: "headphones").font(.system(size: 13, weight: .semibold))
-                    Text("Аудиовыход выбирается в EdgeLink на Windows. Звук ПК и Mac смешивается.").font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(state.audioHint).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.frame(minWidth: 0, maxWidth: .infinity, alignment: .leading).card()
             }
             updates
@@ -205,6 +209,12 @@ struct Dashboard: View {
                 }
                 Picker("Экран Mac", selection: $state.selectedDisplay) { ForEach(state.displays, id: \.0) { Text($0.1).tag($0.0) } }.disabled(state.running || state.busy)
                 Toggle("Начинать связь, когда всё готово", isOn: $state.autoStart).toggleStyle(.switch)
+            }.card()
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Звук").font(.system(size: 16, weight: .semibold))
+                Toggle("Выключать динамики Mac, пока подключён ПК", isOn: $state.muteMac).toggleStyle(.switch)
+                Text(state.audioHint).font(.system(size: 12)).foregroundStyle(.secondary)
+                Text("Громкость сохраняется. После отключения ПК звук Mac возвращается.").font(.system(size: 11)).foregroundStyle(.secondary)
             }.card()
             VStack(alignment: .leading, spacing: 14) { Text("Доступ к Mac").font(.system(size: 16, weight: .semibold)); permissions }.card()
             updates

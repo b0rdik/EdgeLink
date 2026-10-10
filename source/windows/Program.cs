@@ -66,7 +66,7 @@ internal sealed partial class MainWindow : Form
         side.Items.AddRange(["Mac слева", "Mac справа"]); side.SelectedIndex = 0;
         foreach (var s in Screen.AllScreens) screen.Items.Add($"{s.DeviceName} — {s.Bounds.Width}×{s.Bounds.Height}{(s.Primary ? " (основной)" : "")}");
         screen.SelectedIndex = Array.FindIndex(Screen.AllScreens, s => s.Primary);
-        jitter.Items.AddRange(["10 мс — минимальный буфер", "20 мс", "40 мс — устойчивее к сбоям"]); jitter.SelectedIndex = 0;
+        jitter.Items.AddRange(["Авто — от 10 мс", "Авто — от 20 мс", "Авто — от 40 мс"]); jitter.SelectedIndex = 0;
         mouseRate.Items.AddRange(["До 1000 Гц — минимальная задержка", "До 500 Гц", "До 250 Гц — меньше пакетов"]); mouseRate.SelectedIndex = 0;
         devices.Add(("Вывод Windows по умолчанию", ""));
         if (!layoutCheck) using (var enumerator = new MMDeviceEnumerator())
@@ -95,7 +95,7 @@ internal sealed partial class MainWindow : Form
         {
             if (link == null) return;
             long bytes = Interlocked.Read(ref link.AudioBytes), packets = Interlocked.Read(ref link.AudioPackets);
-            stats.Text = $"RTT: {link.RoundTripMs} мс · звук: {(bytes - lastBytes) * 8 / 1_000_000.0:F2} Мбит/с (IPv4)\nБуфер: {link.Audio.BufferedMs:F1} мс · опустошения: {link.Audio.Underruns} · пакеты: {packets}";
+            stats.Text = $"RTT: {link.RoundTripMs} мс · звук: {(bytes - lastBytes) * 8 / 1_000_000.0:F2} Мбит/с (IPv4)\nБуфер: {link.Audio.BufferedMs:F1} мс · запас: {link.Audio.TargetMs:F1} мс · прерывания: {link.Audio.Underruns} · пакеты: {packets}";
             lastBytes = bytes;
         };
         refresh.Start(); FormClosing += (_, _) => { updateCancellation.Cancel(); reconnectTimer.Dispose(); Disconnect(); input?.Dispose(); refresh.Dispose(); SaveSettings(); };

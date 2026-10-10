@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let input = InputReceiver()
     private lazy var server = LinkServer(input: input)
     private lazy var audio = AudioSender(server: server)
+    private let outputMute = OutputMute()
     private var running = false { didSet { state.running = running } }
     private var busy = false { didSet { state.busy = busy } }
     private var secret: Data?
@@ -63,9 +64,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu(); main.addItem(appRoot); NSApp.mainMenu = main
         configureActions(); buildWindow()
         if preview { renderPreview(); return }
+        outputMute.recover()
         show()
         loadPairingSecret()
-        server.status = { [weak self] text in guard let self else { return }; state.status = text; state.connected = server.currentSession != nil }
+        server.audioBatchFrames = { [weak self] in self?.audio.captureBatchFrames ?? 0 }
+        server.status = { [weak self] text in guard let self else { return }; state.status = text; state.connected = server.currentSession != nil; refreshOutputMute() }
         audio.failed = { [weak self] text in
             guard let self else { return }; let paused = automaticPaused; stopLink(); automaticPaused = paused
             retryAfter = Date(timeIntervalSinceNow: 10); state.status = text
@@ -83,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         checkUpdates(manual: false)
     }
     private func configureActions() {
+        state.onMuteChange = { [weak self] in self?.refreshOutputMute() }
         state.onInput = { [weak self] in self?.requestInput() }
         state.onAudio = { [weak self] in self?.requestAudio() }
         state.onCopy = { [weak self] in self?.copyKey() }
@@ -94,6 +98,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state.onRepair = { [weak self] in self?.repairPermissions() }
         state.onRestart = { [weak self] in self?.restart() }
         state.onRetryKey = { [weak self] in self?.loadPairingSecret() }
+    }
+    private func refreshOutputMute() {
+        guard !preview else { return }
+        outputMute.update(connected: server.currentSession != nil, enabled: state.muteMac)
+        state.audioHint = outputMute.hint
     }
     private func buildWindow() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: min(720, max(630, (NSScreen.main?.visibleFrame.height ?? 850) - 70))), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
@@ -134,6 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else { show() }
     }
     @objc private func refreshSetup() {
+        refreshOutputMute()
         guard !preview else { return }
         state.inputAllowed = Permissions.inputAllowed; state.audioAllowed = Permissions.audioAllowed || audio.isCapturing || Date() < audioProbeValidUntil
         guard !scanningNetwork else { return }; scanningNetwork = true
@@ -295,6 +305,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     @objc private func stopLink() {
+        outputMute.update(connected: false, enabled: state.muteMac); state.audioHint = outputMute.hint
         automaticPaused = true; state.connected = false
         guard running && !busy else { return }
         running = false; busy = true
@@ -308,8 +319,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         retryAfter = Date.distantFuture
     }
     @objc private func resumeLink() { retryAfter = Date(); refreshSetup() }
-    @objc private func quit() { server.stop(); discovery.stop(); NSApp.terminate(nil) }
-    func applicationWillTerminate(_ notification: Notification) { updateTask?.cancel(); monitor?.invalidate(); server.stop(); discovery.stop() }
+    @objc private func quit() { outputMute.restore(); server.stop(); discovery.stop(); NSApp.terminate(nil) }
+    func applicationWillTerminate(_ notification: Notification) { outputMute.restore(); updateTask?.cancel(); monitor?.invalidate(); server.stop(); discovery.stop() }
 }
 
 let app = NSApplication.shared

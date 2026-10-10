@@ -17,3 +17,5 @@ Version 0.3.0 adds a redesigned Windows dashboard, seven-size native ICO, a four
 Version 0.3.1 fixes the Windows dashboard layout: viewport-constrained card widths, measured text heights, responsive fields, vertical scrolling and screen-sized startup bounds. Native layout regression checks are available with `EdgeLink.exe --layout-checks`; they require Windows and have not been executed on the macOS build host.
 
 Version 0.3.2 fixes a confirmed macOS audio capture crash caused by absolute indices on sliced `Data`. PCM packets now use the collection start index. Regression checks cover 10000 variable capture batches; Windows reports connection closure with actionable messages.
+
+Version 0.3.3 adds capture-batch-aware adaptive audio buffering, full WASAPI-block prebuffering, bounded recovery with fades, and automatic local Mac output mute while a PC is connected. Local volume is preserved; app-owned mute is restored on disconnect, output change and exit. Hardware checks confirm capture continues with speakers muted. Windows audible continuity still needs validation with the new EXE on the user's headset.

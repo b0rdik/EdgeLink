@@ -58,6 +58,7 @@ internal sealed class Link : IDisposable
         key = Wire.SessionKey(master, clientNonce, serverNonce);
         CryptographicOperations.ZeroMemory(master);
         MacWidth = hello.GetProperty("width").GetDouble(); MacHeight = hello.GetProperty("height").GetDouble();
+        ObserveAudioBatch(hello);
         if (MacWidth < 100 || MacHeight < 100) throw new InvalidDataException("Invalid display dimensions");
         lastPong = Environment.TickCount64;
         _ = Guard(() => WriteLoop(stream)); _ = Guard(() => ReadLoop(stream));
@@ -83,9 +84,14 @@ internal sealed class Link : IDisposable
             if (message.GetProperty("type").GetString() == "pong")
             {
                 lastPong = Environment.TickCount64;
+                ObserveAudioBatch(message);
                 RoundTripMs = (int)Math.Clamp(lastPong - message.GetProperty("time").GetInt64(), 0, 9999);
             }
         }
+    }
+    private void ObserveAudioBatch(System.Text.Json.JsonElement message)
+    {
+        if (message.TryGetProperty("audioBatchFrames", out var batch) && batch.TryGetInt32(out int frames)) Audio.ObserveCaptureBatch(frames);
     }
     private async Task Heartbeat()
     {

@@ -38,14 +38,48 @@ var audio = new AudioBuffer(10);
 audio.Feed(Packet(0)); audio.Feed(Packet(240)); audio.Feed(Packet(480));
 Check(Math.Abs(audio.BufferedMs - 15) < .01, "PCM packets accumulate exact frame count");
 audio.Feed(Packet(240)); Check(Math.Abs(audio.BufferedMs - 15) < .01, "late / duplicate audio discarded");
+audio.Feed(Packet(720));
 byte[] rendered = new byte[240 * 8]; audio.Read(rendered, 0, rendered.Length);
-float sample = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(rendered));
+float sample = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(rendered.AsSpan(100 * 8)));
 Check(Math.Abs(sample - 1000f / 32768) < .00001, "PCM16 converts to stereo float playback");
-for (ulong frame = 720; frame < 48000; frame += 240) audio.Feed(Packet(frame));
+Check(BitConverter.ToSingle(rendered, 0) < sample / 2, "rebuffer playback fades in instead of clicking");
+for (ulong frame = 960; frame < 48000; frame += 240) audio.Feed(Packet(frame));
 Check(audio.BufferedMs <= 30 && audio.DroppedFrames > 0, "backlog bounded instead of accumulating latency");
 audio.Feed(Packet(96000)); Check(audio.BufferedMs <= 5.1, "large audio discontinuity flushes stale buffer");
 byte[] empty = new byte[4800 * 8]; audio.Read(empty, 0, empty.Length);
 Check(empty.All(v => v == 0), "prebuffering provides silence rather than stale sound");
+
+var largeRead = new AudioBuffer(10);
+for (ulong f = 0; f < 960; f += 240) largeRead.Feed(Packet(f));
+var block40ms = new byte[1920 * 8]; largeRead.Read(block40ms, 0, block40ms.Length);
+Check(block40ms.All(v => v == 0) && largeRead.Underruns == 0 && largeRead.BufferedMs == 20,
+    "large WASAPI request waits for a whole block without partially draining audio");
+for (ulong f = 960; f < 2880; f += 240) largeRead.Feed(Packet(f));
+largeRead.Read(block40ms, 0, block40ms.Length);
+Check(BitConverter.ToSingle(block40ms, 100 * 8) != 0 && largeRead.Underruns == 0,
+    "large WASAPI request plays once its full block and reserve are available");
+
+var adaptive = new AudioBuffer(10);
+adaptive.ObserveCaptureBatch(1024);
+Check(Math.Abs(adaptive.TargetMs - 1024 / 48.0) < .01, "reserve follows actual macOS capture batch");
+var render10ms = new byte[480 * 8];
+ulong delivered = 0; double nextCapture = 0; int captureNumber = 0;
+for (int ms = 0; ms < 30000; ms++) {
+    if (ms >= nextCapture) {
+        ulong available = (ulong)(++captureNumber * 1024);
+        while (delivered + 240 <= available) { adaptive.Feed(Packet(delivered)); delivered += 240; }
+        // Same nominal clocks, 21.33 ms source callbacks, deterministic +/-4 ms jitter.
+        nextCapture = captureNumber * 1024 / 48.0 + (captureNumber % 3 - 1) * 4;
+    }
+    if (ms % 10 == 0) adaptive.Read(render10ms, 0, render10ms.Length);
+}
+Check(adaptive.Underruns <= 2 && adaptive.TargetMs <= 35 && adaptive.DroppedFrames == 0,
+    "30 seconds of burst capture and jitter play without recurring underruns or backlog drops");
+for (int i = 0; i < 50; i++) adaptive.Read(render10ms, 0, render10ms.Length);
+Check(adaptive.Underruns > 0 && adaptive.TargetMs <= 60 && adaptive.BufferedMs == 0,
+    "starvation raises a bounded reserve and discards stale tail");
+adaptive.ObserveCaptureBatch(48000);
+Check(adaptive.TargetMs == 60, "capture anomalies cannot grow reserve beyond 60 ms");
 
 var release = new Dictionary<string, object> {
     ["tag_name"] = "v0.2.0", ["draft"] = false, ["prerelease"] = false,
@@ -107,6 +141,7 @@ if (args.Contains("--integration"))
     string? failure = null; link.Failed += error => failure = error;
     await link.Connect("127.0.0.1", "127.0.0.1", Convert.ToBase64String(master));
     Check(link.MacWidth >= 100 && link.MacHeight >= 100, "Windows ↔ Swift authenticated handshake");
+    Check(Math.Abs(link.Audio.TargetMs - 1024 / 48.0) < .01, "capture batch telemetry reaches Windows during handshake");
     link.Move(7, 123.25, 321.5);
     var deadline = DateTime.UtcNow.AddSeconds(2);
     while (Interlocked.Read(ref link.AudioPackets) < 5 && DateTime.UtcNow < deadline) await Task.Delay(10);

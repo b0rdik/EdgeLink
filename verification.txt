@@ -1,11 +1,12 @@
-EdgeLink 0.3.2 — Mac PCM crash fix
+EdgeLink 0.3.3 — audio continuity and local-output mute
 
-Confirmed cause: three macOS crash reports from installed 0.3.0 show EdgeLink.audio -> Data.subdata(in:) -> AudioSender.stream. Data.removeFirst retains a nonzero startIndex; treating offsets as absolute indices traps when processing later audio callbacks.
+Observed on the user's Mac: ScreenCaptureKit audio callbacks contain 960 frames at 48 kHz (20 ms). Previously Windows requested playback with a fixed 10 ms reserve and could start without enough data for the full driver request. The replacement accounts for source batch size and full output requests, adapts reserve after underruns (up to 60 ms), flushes stale tail and fades recovery transitions.
 
-Fix: AudioPCM.takePacket uses buffer.startIndex and index(_:offsetBy:), consumes complete 960-byte PCM packets and retains the partial tail. Windows now reports connection closure in Russian without exposing a raw EndOfStreamException.
+PASS: Mac arm64 build and Windows self-contained win-x64 build.
+PASS: PCM 10000 variable batches, sliced Data regression; Swift/.NET handshake, discovery, crypto, wrong-key rejection, encrypted UDP audio, heartbeat/restart and updater validation.
+PASS: 30 seconds of simulated 1024-frame capture batches with deterministic +/-4 ms delivery jitter; no recurring underruns or backlog drops. Full large WASAPI request gating, bounded reserve and capture-batch telemetry across the actual Swift/.NET handshake.
+PASS: mute policy fake-backend checks: waiting, connection, disconnection, output switch, previously muted output, manual unmute, abnormal-exit recovery and failed mute.
+PASS: installed Mac 0.3.3 satisfies the prior signing requirement; previous app backed up. Privacy permissions were not reset or changed.
+PASS: real Ethernet connection with Windows; CoreAudio output mute changed from false to true while connected. A known 440 Hz test tone remained present in capture (peak 0.024996) while hardware output was muted. Stopping the connection restored output mute=false; connection was resumed afterward.
 
-PASS: regression starts with sliced Data whose startIndex > 0; 10000 variable capture batches preserve every byte and final partial tail; reset/empty buffer handled.
-PASS: Swift/.NET protocol integration, authenticated handshake, wrong-key rejection, encrypted UDP audio, heartbeats, discovery, audio buffer and update validation checks.
-PASS: Mac arm64 build; Windows self-contained x64 build; installed Mac update satisfies the previous signing requirement. No privacy permissions reset or altered. Previous installed Mac bundle backed up.
-
-Native Windows layout regression mode and visual Windows verification remain unrun on this macOS host. Perceived headset playback, physical HID behavior and end-to-end latency require the user's two-machine check.
+LIMITS: Native Windows UI/driver/headset playback and end-to-end audio latency cannot be tested on the macOS build host. User must install the Windows 0.3.3 EXE to use the revised buffer and assess audible continuity. Mac mute setting works with older protocol-v1 clients. No IAudioClient3/exclusive playback or audio compression added.

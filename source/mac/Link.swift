@@ -25,6 +25,7 @@ final class LinkServer {
     private var mouseScheduled = false
     let input: InputReceiver
     var status: ((String) -> Void)?
+    var audioBatchFrames: (() -> Int)?
     init(input: InputReceiver) { self.input = input }
     var currentSession: Session? { state.lock(); defer { state.unlock() }; return session }
     private var isRunning: Bool { state.lock(); defer { state.unlock() }; return running }
@@ -59,13 +60,13 @@ final class LinkServer {
                           let nonceText = hello["nonce"] as? String, let clientNonce = Data(base64Encoded: nonceText), clientNonce.count == 16,
                           let audioPort = hello["audioPort"] as? Int, audioPort == 48792 else { throw LinkError.message("Неверный ключ или версия клиента") }
                     let serverNonce = Data((0..<16).map { _ in UInt8.random(in: 0...255) })
-                    try Wire.send(fd, message: ["type": "hello", "version": 1, "nonce": serverNonce.base64EncodedString(), "width": displayWidth, "height": displayHeight], key: SymmetricKey(data: master))
+                    try Wire.send(fd, message: ["type": "hello", "version": 1, "nonce": serverNonce.base64EncodedString(), "width": displayWidth, "height": displayHeight, "audioBatchFrames": audioBatchFrames?() ?? 0], key: SymmetricKey(data: master))
                     let s = Session(key: Wire.sessionKey(master: master, client: clientNonce, server: serverNonce), peer: address.sin_addr, audioPort: UInt16(audioPort))
                     state.lock(); session = s; state.unlock(); report("ПК подключён · звук передаётся")
                     while isRunning {
                         let message = try Wire.receive(fd, key: s.key)
                         if message["type"] as? String == "ping" {
-                            try Wire.send(fd, message: ["type": "pong", "time": message["time"] ?? 0], key: s.key)
+                            try Wire.send(fd, message: ["type": "pong", "time": message["time"] ?? 0, "audioBatchFrames": audioBatchFrames?() ?? 0], key: s.key)
                         } else {
                             DispatchQueue.main.async { [self] in if currentSession === s { input.handle(message) } }
                         }

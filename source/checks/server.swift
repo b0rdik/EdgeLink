@@ -27,6 +27,39 @@ receivedPCM.append(pcmBuffer)
 check(receivedPCM == expectedPCM, "PCM 10000 variable capture batches preserve every byte and partial tail")
 pcmBuffer.removeAll(keepingCapacity: true)
 check(AudioPCM.takePacket(from: &pcmBuffer) == nil, "PCM empty/reset buffer waits for a full packet")
+final class FakeOutputMute: OutputMuteBackend {
+    let first = MuteDevice(id: 1, uid: "first"), second = MuteDevice(id: 2, uid: "second")
+    var selected = 1, states: [UInt32: Bool] = [1: false, 2: false], writes = 0, writable = true
+    func defaultDevice() -> MuteDevice? { selected == 1 ? first : second }
+    func device(uid: String) -> MuteDevice? { uid == first.uid ? first : uid == second.uid ? second : nil }
+    func muted(_ device: MuteDevice) -> Bool? { states[device.id] }
+    func setMuted(_ value: Bool, on device: MuteDevice) -> Bool { guard writable else { return false }; states[device.id] = value; writes += 1; return true }
+}
+let muteSuite = "EdgeLink-mute-check-" + UUID().uuidString
+let muteDefaults = UserDefaults(suiteName: muteSuite)!
+let muteBackend = FakeOutputMute(), mute = OutputMute(backend: muteBackend, defaults: muteDefaults)
+mute.update(connected: false, enabled: true)
+check(muteBackend.writes == 0, "waiting for PC does not mute Mac")
+mute.update(connected: true, enabled: true)
+check(muteBackend.states[1] == true, "connected PC acquires local output mute")
+muteBackend.selected = 2; mute.update(connected: true, enabled: true)
+check(muteBackend.states[1] == false && muteBackend.states[2] == true, "output switch restores old device and mutes new device")
+mute.update(connected: false, enabled: true)
+check(muteBackend.states[2] == false, "disconnect restores app-owned mute")
+muteBackend.states[2] = true; let beforeMuted = muteBackend.writes
+mute.update(connected: true, enabled: true); mute.update(connected: false, enabled: true)
+check(muteBackend.writes == beforeMuted && muteBackend.states[2] == true, "previously muted device stays muted")
+muteBackend.states[2] = false; mute.update(connected: true, enabled: true)
+muteBackend.states[2] = false; let beforeManual = muteBackend.writes
+mute.update(connected: true, enabled: true); mute.update(connected: true, enabled: true)
+check(muteBackend.writes == beforeManual, "manual unmute is respected during current connection")
+mute.update(connected: false, enabled: true); mute.update(connected: true, enabled: true)
+let recovered = OutputMute(backend: muteBackend, defaults: muteDefaults); recovered.recover()
+check(muteBackend.states[2] == false && muteDefaults.data(forKey: "outputMuteRecovery") == nil, "abnormal exit journal restores only recorded device")
+muteBackend.writable = false
+let unsupported = OutputMute(backend: muteBackend, defaults: muteDefaults); unsupported.update(connected: true, enabled: true)
+check(muteBackend.states[2] == false && muteDefaults.data(forKey: "outputMuteRecovery") == nil, "failed mute leaves no recovery record or changed state")
+muteDefaults.removePersistentDomain(forName: muteSuite)
 func rejects(_ label: String, _ work: () throws -> Void) { do { try work(); fatalError("FAIL: " + label) } catch { print("PASS: " + label) } }
 let release: [String: Any] = ["tag_name": "v0.2.0", "draft": false, "prerelease": false, "assets": [["name": Updates.asset, "browser_download_url": "https://github.com/b0rdik/EdgeLink/releases/download/v0.2.0/" + Updates.asset, "digest": "sha256:" + String(repeating: "a", count: 64), "size": 1234]]]
 let metadata = try Wire.json(release)
@@ -44,6 +77,7 @@ if let path = ProcessInfo.processInfo.environment["INSTALLER_SCRIPT_EXPORT"] { t
 let discovery = DiscoveryServer(); try discovery.start(ip: "127.0.0.1", key: master)
 let input = InputReceiver()
 let server = LinkServer(input: input)
+server.audioBatchFrames = { 1024 }
 server.status = { print($0); fflush(stdout) }
 try server.start(ip: "127.0.0.1", peerIP: "127.0.0.1", master: master, displayWidth: 1920, displayHeight: 1080)
 let udp = socket(AF_INET, SOCK_DGRAM, 0)

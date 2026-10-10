@@ -3,6 +3,7 @@ import ScreenCaptureKit
 import CoreMedia
 import AVFoundation
 import Darwin
+import OSLog
 
 final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
     private(set) var isCapturing = false
@@ -14,6 +15,12 @@ final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
     private var sequence: UInt64 = 0, firstFrame: UInt64 = 0
     private weak var previous: Session?
     private var lastPTS: Double?
+    private let metrics = NSLock()
+    private var batchFrames = 0
+    private let logger = Logger(subsystem: "local.edgelink.mac", category: "Audio")
+    private var reportAfter = ProcessInfo.processInfo.systemUptime + 5
+    private var peak: Float = 0
+    var captureBatchFrames: Int { metrics.lock(); defer { metrics.unlock() }; return batchFrames }
     var failed: ((String) -> Void)?
     init(server: LinkServer) { self.server = server }
     func start(ip: String, displayID: CGDirectDisplayID) async throws {
@@ -43,6 +50,9 @@ final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
         DispatchQueue.main.async { [weak self] in self?.isCapturing = false; self?.failed?("Захват звука остановлен: \(error.localizedDescription)") }
     }
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
+        if type == .audio, CMSampleBufferDataIsReady(sampleBuffer) {
+            metrics.lock(); batchFrames = max(batchFrames, CMSampleBufferGetNumSamples(sampleBuffer)); metrics.unlock()
+        }
         guard type == .audio, CMSampleBufferDataIsReady(sampleBuffer), udp >= 0, let session = server.currentSession else {
             accumulated.removeAll(keepingCapacity: true); lastPTS = nil; return
         }
@@ -75,6 +85,7 @@ final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
         for frame in 0..<frames {
             let l = left[planar ? frame : frame * channels]
             let r = planar ? (right?[frame] ?? l) : left[frame * channels + min(1, channels - 1)]
+            if l.isFinite && r.isFinite { peak = max(peak, abs(l), abs(r)) }
             accumulated.appendLE(pcm(l)); accumulated.appendLE(pcm(r))
         }
         while let pcm = AudioPCM.takePacket(from: &accumulated) {
@@ -83,6 +94,11 @@ final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
             plain.append(pcm)
             if let packet = try? Wire.seal(plain, key: session.key) { _ = Wire.sendUDP(udp, data: packet, to: session.audioTarget) }
             firstFrame += 240
+        }
+        let now = ProcessInfo.processInfo.systemUptime
+        if now >= reportAfter {
+            logger.info("Audio capture batch=\(frames, privacy: .public) peak=\(self.peak, privacy: .public)")
+            peak = 0; reportAfter = now + 5
         }
     }
     private func pcm(_ value: Float) -> Int16 {
