@@ -12,6 +12,21 @@ let known = try Wire.open(nist, key: SymmetricKey(data: Data(repeating: 0, count
 precondition(known.isEmpty)
 print("PASS: Swift AES-GCM / known vector")
 func check(_ value: Bool, _ label: String) { precondition(value, label); print("PASS: " + label) }
+var pcmBuffer = Data(repeating: 0xaa, count: 961)
+pcmBuffer.removeFirst()
+check(pcmBuffer.startIndex > 0, "PCM regression exercises nonzero Data startIndex")
+check(AudioPCM.takePacket(from: &pcmBuffer) == Data(repeating: 0xaa, count: 960), "PCM packet from sliced Data")
+var expectedPCM = Data(), receivedPCM = Data()
+for cycle in 0..<10000 {
+    let chunk = Data((0..<(cycle % 2049)).map { UInt8(truncatingIfNeeded: $0 + cycle) })
+    pcmBuffer.append(chunk); expectedPCM.append(chunk)
+    while let packet = AudioPCM.takePacket(from: &pcmBuffer) { receivedPCM.append(packet) }
+    precondition(pcmBuffer.count < AudioPCM.packetBytes)
+}
+receivedPCM.append(pcmBuffer)
+check(receivedPCM == expectedPCM, "PCM 10000 variable capture batches preserve every byte and partial tail")
+pcmBuffer.removeAll(keepingCapacity: true)
+check(AudioPCM.takePacket(from: &pcmBuffer) == nil, "PCM empty/reset buffer waits for a full packet")
 func rejects(_ label: String, _ work: () throws -> Void) { do { try work(); fatalError("FAIL: " + label) } catch { print("PASS: " + label) } }
 let release: [String: Any] = ["tag_name": "v0.2.0", "draft": false, "prerelease": false, "assets": [["name": Updates.asset, "browser_download_url": "https://github.com/b0rdik/EdgeLink/releases/download/v0.2.0/" + Updates.asset, "digest": "sha256:" + String(repeating: "a", count: 64), "size": 1234]]]
 let metadata = try Wire.json(release)

@@ -77,15 +77,13 @@ final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
             let r = planar ? (right?[frame] ?? l) : left[frame * channels + min(1, channels - 1)]
             accumulated.appendLE(pcm(l)); accumulated.appendLE(pcm(r))
         }
-        var offset = 0
-        while accumulated.count - offset >= 960 {
+        while let pcm = AudioPCM.takePacket(from: &accumulated) {
             sequence += 1
             var plain = Data([2]); plain.appendLE(sequence); plain.appendLE(firstFrame)
-            plain.append(accumulated.subdata(in: offset..<(offset + 960)))
+            plain.append(pcm)
             if let packet = try? Wire.seal(plain, key: session.key) { _ = Wire.sendUDP(udp, data: packet, to: session.audioTarget) }
-            firstFrame += 240; offset += 960
+            firstFrame += 240
         }
-        if offset > 0 { accumulated.removeFirst(offset) }
     }
     private func pcm(_ value: Float) -> Int16 {
         guard value.isFinite else { return 0 }

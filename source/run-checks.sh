@@ -5,7 +5,7 @@ DOTNET_CMD="${DOTNET_CMD:-dotnet}"
 SCRATCH_DIR="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH_DIR"' EXIT
 cp "$SOURCE_DIR/checks/server.swift" "$SCRATCH_DIR/main.swift"
-swiftc -swift-version 5 "$SOURCE_DIR/mac/Wire.swift" "$SOURCE_DIR/mac/Input.swift" "$SOURCE_DIR/mac/Link.swift" "$SOURCE_DIR/mac/Discovery.swift" "$SOURCE_DIR/mac/Updates.swift" "$SCRATCH_DIR/main.swift" -o "$SCRATCH_DIR/server"
+swiftc -swift-version 5 "$SOURCE_DIR/mac/Wire.swift" "$SOURCE_DIR/mac/Input.swift" "$SOURCE_DIR/mac/Link.swift" "$SOURCE_DIR/mac/PCM.swift" "$SOURCE_DIR/mac/Discovery.swift" "$SOURCE_DIR/mac/Updates.swift" "$SCRATCH_DIR/main.swift" -o "$SCRATCH_DIR/server"
 "$DOTNET_CMD" build "$SOURCE_DIR/checks/Checks.csproj" -c Release --artifacts-path "$SCRATCH_DIR/artifacts" -o "$SCRATCH_DIR/client"
 export SCRATCH_DIR DOTNET_CMD
 python3 - <<'PY'

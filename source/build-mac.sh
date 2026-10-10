@@ -10,7 +10,7 @@ SCRATCH_DIR="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH_DIR"' EXIT
 cp "$SOURCE_DIR/mac/App.swift" "$SCRATCH_DIR/main.swift"
 swiftc -swift-version 5 -O -target arm64-apple-macos15.0 \
-  "$SOURCE_DIR/mac/Wire.swift" "$SOURCE_DIR/mac/Input.swift" "$SOURCE_DIR/mac/Link.swift" "$SOURCE_DIR/mac/Audio.swift" "$SOURCE_DIR/mac/Updates.swift" "$SOURCE_DIR/mac/Discovery.swift" "$SOURCE_DIR/mac/Dashboard.swift" "$SOURCE_DIR/mac/Permissions.swift" "$SCRATCH_DIR/main.swift" \
+  "$SOURCE_DIR/mac/Wire.swift" "$SOURCE_DIR/mac/Input.swift" "$SOURCE_DIR/mac/Link.swift" "$SOURCE_DIR/mac/PCM.swift" "$SOURCE_DIR/mac/Audio.swift" "$SOURCE_DIR/mac/Updates.swift" "$SOURCE_DIR/mac/Discovery.swift" "$SOURCE_DIR/mac/Dashboard.swift" "$SOURCE_DIR/mac/Permissions.swift" "$SCRATCH_DIR/main.swift" \
   -o "$APP_DIR/Contents/MacOS/EdgeLink"
 cp "$SOURCE_DIR/mac/Info.plist" "$APP_DIR/Contents/Info.plist"
 cp "$SOURCE_DIR/assets/EdgeLink.icns" "$APP_DIR/Contents/Resources/EdgeLink.icns"

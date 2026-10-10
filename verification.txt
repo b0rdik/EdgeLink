@@ -1,0 +1,11 @@
+EdgeLink 0.3.2 — Mac PCM crash fix
+
+Confirmed cause: three macOS crash reports from installed 0.3.0 show EdgeLink.audio -> Data.subdata(in:) -> AudioSender.stream. Data.removeFirst retains a nonzero startIndex; treating offsets as absolute indices traps when processing later audio callbacks.
+
+Fix: AudioPCM.takePacket uses buffer.startIndex and index(_:offsetBy:), consumes complete 960-byte PCM packets and retains the partial tail. Windows now reports connection closure in Russian without exposing a raw EndOfStreamException.
+
+PASS: regression starts with sliced Data whose startIndex > 0; 10000 variable capture batches preserve every byte and final partial tail; reset/empty buffer handled.
+PASS: Swift/.NET protocol integration, authenticated handshake, wrong-key rejection, encrypted UDP audio, heartbeats, discovery, audio buffer and update validation checks.
+PASS: Mac arm64 build; Windows self-contained x64 build; installed Mac update satisfies the previous signing requirement. No privacy permissions reset or altered. Previous installed Mac bundle backed up.
+
+Native Windows layout regression mode and visual Windows verification remain unrun on this macOS host. Perceived headset playback, physical HID behavior and end-to-end latency require the user's two-machine check.

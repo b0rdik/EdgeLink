@@ -46,7 +46,11 @@ internal sealed class Link : IDisposable
         byte[] clientNonce = RandomNumberGenerator.GetBytes(16);
         var stream = tcp.GetStream();
         await Wire.Send(stream, new { type = "connect", version = 1, nonce = Convert.ToBase64String(clientNonce), audioPort = 48792 }, master, timeout.Token);
-        var hello = await Wire.Receive(stream, master, timeout.Token);
+        System.Text.Json.JsonElement hello;
+        try { hello = await Wire.Receive(stream, master, timeout.Token); }
+        catch (EndOfStreamException error) {
+            throw new IOException("Mac закрыл соединение во время подключения. Проверьте, что EdgeLink на Mac работает, и повторно импортируйте файл подключения, если ключ менялся.", error);
+        }
         if (hello.GetProperty("type").GetString() != "hello" || hello.GetProperty("version").GetInt32() != 1)
             throw new InvalidDataException("Несовместимая версия Mac-приложения.");
         byte[] serverNonce = Convert.FromBase64String(hello.GetProperty("nonce").GetString()!);
@@ -122,6 +126,7 @@ internal sealed class Link : IDisposable
     {
         try { await work(); }
         catch (OperationCanceledException) { }
+        catch (EndOfStreamException) { if (!stop.IsCancellationRequested) Fail("Соединение с Mac прервано. Проверьте, что EdgeLink на Mac продолжает работать."); }
         catch (Exception error) { if (!stop.IsCancellationRequested) Fail(error.Message); }
     }
     private void Fail(string message) { Dispose(); Failed?.Invoke(message); }
