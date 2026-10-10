@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "check": "separate input thread; no PC-side raw registration",
+      "pass": true
+    },
+    {
+      "check": "input pump responds while UI is blocked for 300 ms",
+      "pass": true,
+      "elapsedMs": 0.2219
+    },
+    {
+      "check": "shutdown preserves previous raw registrations",
+      "pass": true
+    }
+  ]
+}
