@@ -1,154 +1,148 @@
-using System.Reflection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Automation;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace EdgeLink;
-internal sealed partial class MainWindow
-{
-    private readonly ConnectionHero hero = new();
-    private readonly Panel content = new() { Dock = DockStyle.Fill, BackColor = Theme.Background };
-    private readonly List<Panel> pages = [];
-    private readonly List<Button> navigation = [];
-    private readonly Label connectionHeading = Theme.Label("Давайте подключимся",20,true);
-    private readonly Label inputHint = Theme.Label("",10,muted:true);
-    private readonly Label setupHint = Theme.Label("",11,muted:true);
-    private readonly WizardProgress setupProgress = new();
-    private readonly Button setupNext = Theme.Button("Продолжить",true), setupBack = Theme.Button("Назад");
-    private readonly List<Panel> setupStages = [];
-    private Panel? wizardCard;
-    private Panel? manualNetwork;
-    private bool setupComplete;
-    private int setupStage;
-    private string macName = "Ваш Mac";
-    private TableLayoutPanel? dashboardRoot;
 
-    private void BuildDashboard()
-    {
-        SuspendLayout();
-        AutoScaleDimensions = new SizeF(96,96); AutoScaleMode = AutoScaleMode.Dpi;
-        Font=Theme.Font(); BackColor=Theme.Background; ForeColor=Theme.Text;
-        ClientSize = new Size(880,760); MinimumSize=new Size(680,560);
-        foreach (var c in new Control[] {local,remote,pairing,side,screen,device,jitter,mouseRate,gain,swap,automatic,reconnect,connect,importPairing,firewall,updateButton,status,stats,updateStatus}) Theme.Style(c);
-        Theme.Primary(connect); Theme.Primary(importPairing); connect.Text="Подключить"; importPairing.Text="Добавить Mac…";
-        automatic.Text="Находить Mac по Ethernet автоматически"; reconnect.Text="Восстанавливать соединение автоматически";
-        status.Font=Theme.Font(10); status.ForeColor=Theme.Muted; stats.Font=Theme.Font(9); stats.ForeColor=Theme.Muted;
-        status.MaximumSize=stats.MaximumSize=updateStatus.MaximumSize=Size.Empty;
-        var root=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=Padding.Empty,Padding=new Padding(26,16,26,0),BackColor=Theme.Background };
-        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute,78)); root.RowStyles.Add(new RowStyle(SizeType.Absolute,54)); root.RowStyles.Add(new RowStyle(SizeType.Percent,100)); root.RowStyles.Add(new RowStyle(SizeType.Absolute,46));
-        var brand=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=3,RowCount=1,Margin=Padding.Empty,BackColor=Theme.Background };
-        brand.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,60));brand.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));brand.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,72));brand.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        using (var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("EdgeLink.Brand.png")) {
-            if (stream != null) { using var original=Image.FromStream(stream); brand.Controls.Add(new PictureBox { Image=new Bitmap(original),Size=new Size(46,46),SizeMode=PictureBoxSizeMode.Zoom,Margin=new Padding(0,7,0,0) },0,0); }
+public sealed partial class MainWindow
+{
+    internal readonly Grid Root=new() {RequestedTheme=ElementTheme.Dark};
+    private readonly NavigationView navigation=new() {PaneDisplayMode=NavigationViewPaneDisplayMode.Top,IsSettingsVisible=false,IsBackButtonVisible=NavigationViewBackButtonVisible.Collapsed,IsPaneToggleButtonVisible=false};
+    private readonly ScrollViewer viewport=new() {HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalScrollMode=ScrollMode.Disabled,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
+    private readonly List<StackPanel> pages=[];
+    private readonly List<NavigationViewItem> navigationItems=[];
+    private readonly TextBlock connectionHeading=Theme.Label("Давайте подключимся",26,true);
+    private readonly TextBlock inputHint=Theme.Label("",14,muted:true);
+    private readonly TextBlock setupHint=Theme.Label("",14,muted:true);
+    private readonly ActionButton setupNext=Theme.Button("Продолжить",true),setupBack=Theme.Button("Назад");
+    private readonly List<Border> setupStages=[];
+    private readonly List<TextBlock> progressTitles=[];
+    private readonly List<Border> progressDots=[];
+    private readonly List<TextBlock> progressNumbers=[];
+    private readonly Border macTile=Theme.Card("",""),pcTile=Theme.Card("","");
+    private readonly Grid hero=new() {MinHeight=156};
+    private readonly TextBlock heroLabel=Theme.Label("Ethernet",12,muted:true);
+    private readonly Border connectionCard=Theme.Card("","");
+    private readonly ComboBox wizardDevice=new(),wizardSide=new();
+    private Border? manualNetwork;
+    private bool setupComplete;
+    private int setupStage,selectedPage;
+    private string macName="Ваш Mac";
+    private bool syncingSelectors;
+    private readonly double[] pageOffsets=new double[3];
+
+    private void BuildDashboard() {
+        Root.Background=Theme.Resource("ApplicationPageBackgroundThemeBrush");Root.Padding=new Thickness(24,12,24,0);
+        Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(80)});
+        Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(1,GridUnitType.Star)});
+        Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(48)});
+        var brand=new Grid();brand.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(60)});
+        brand.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});brand.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
+        var icon=new Image {Source=new BitmapImage(new Uri(Desktop.Asset("Brand.png"))),Width=44,Height=44,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left};
+        var titles=Theme.Stack(Theme.Label("EdgeLink",25,true),Theme.Label("Мышь, клавиатура и звук — вместе",13,muted:true));titles.Spacing=2;titles.VerticalAlignment=VerticalAlignment.Center;
+        var version=Theme.Label("v"+Updates.CurrentVersion,12,muted:true);version.VerticalAlignment=VerticalAlignment.Center;
+        Grid.SetColumn(titles,1);Grid.SetColumn(version,2);brand.Children.Add(icon);brand.Children.Add(titles);brand.Children.Add(version);Root.Children.Add(brand);
+        string[] names=["Главная","Первое подключение","Параметры"];string[] glyphs=["\uE80F","\uE71B","\uE713"];
+        for(int i=0;i<names.Length;i++) {
+            var item=new NavigationViewItem {Content=names[i],Icon=new FontIcon {Glyph=glyphs[i]},Tag=i};
+            navigationItems.Add(item);navigation.MenuItems.Add(item);
         }
-        var title=new VerticalStackPanel { Dock=DockStyle.Fill,BackColor=Theme.Background,Margin=Padding.Empty };
-        var brandTitle=Theme.Label("EdgeLink",22,true);brandTitle.Margin=Padding.Empty;title.Controls.Add(brandTitle);title.Controls.Add(Theme.Label("Мышь, клавиатура и звук — вместе",10,muted:true));brand.Controls.Add(title,1,0);
-        var version=Theme.Label("v"+Updates.CurrentVersion,9,muted:true);version.Dock=DockStyle.Fill;version.TextAlign=ContentAlignment.MiddleRight;brand.Controls.Add(version,2,0);root.Controls.Add(brand,0,0);
-        var nav=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=3,RowCount=1,BackColor=Theme.Sidebar,Margin=new Padding(0,0,17,12),Padding=new Padding(3) };
-        nav.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        string[] names=["Главная","Первое подключение","Параметры"];
-        for(int i=0;i<names.Length;i++) { nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100f/3));int index=i;var b=Theme.Button(names[i]);b.Dock=DockStyle.Fill;b.Margin=Padding.Empty;b.Padding=new Padding(8,4,8,4);b.FlatAppearance.BorderSize=0;b.BackColor=Theme.Sidebar;b.Click+=(_,_)=>SelectPage(index);navigation.Add(b);nav.Controls.Add(b,i,0); }
-        root.Controls.Add(nav,0,1);content.Margin=Padding.Empty;root.Controls.Add(content,0,2);
-        var footer=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,BackColor=Theme.Background,Margin=Padding.Empty,Padding=new Padding(0,10,0,0) };
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));footer.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        var returnHint=Theme.Label("Вернуть управление на ПК",9,muted:true);returnHint.Dock=DockStyle.Fill;returnHint.TextAlign=ContentAlignment.MiddleLeft;returnHint.Margin=Padding.Empty;
-        var shortcut=Theme.Label("Ctrl + Alt + Esc",9,true,muted:true);shortcut.Dock=DockStyle.Fill;shortcut.TextAlign=ContentAlignment.MiddleRight;shortcut.Margin=Padding.Empty;
-        footer.Controls.Add(returnHint,0,0);footer.Controls.Add(shortcut,1,0);footer.Paint+=(_,e)=>{using var pen=new Pen(Theme.Border);e.Graphics.DrawLine(pen,0,0,footer.Width,0);};root.Controls.Add(footer,0,3);Controls.Add(root);
-        dashboardRoot=root;SizeChanged+=(_,_)=>UpdateViewport();Shown+=(_,_)=>FitWindow();
+        navigation.SelectionChanged+=(_,e)=> {if(e.SelectedItem is NavigationViewItem item)SelectPage((int)item.Tag);};
+        viewport.Margin=new Thickness(0,16,0,0);navigation.Content=viewport;Grid.SetRow(navigation,1);Root.Children.Add(navigation);
+        var footer=new Grid {BorderBrush=Theme.Resource("DividerStrokeColorDefaultBrush"),BorderThickness=new Thickness(0,1,0,0)};
+        footer.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});footer.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
+        var shortcut=Theme.Label("Вернуть управление на ПК · Ctrl + Alt + Esc",12,muted:true);shortcut.VerticalAlignment=VerticalAlignment.Center;footer.Children.Add(shortcut);
+        var menu=Theme.Button("Меню");menu.MinHeight=32;menu.Padding=new Thickness(12,4,12,4);menu.VerticalAlignment=VerticalAlignment.Center;
+        var flyout=new MenuFlyout();var open=new MenuFlyoutItem {Text="Открыть EdgeLink"};open.Click+=(_,_)=>RestoreFromTray();
+        var toggle=new MenuFlyoutItem {Text="Подключить / отключить"};toggle.Click+=async (_,_)=>await ToggleConnection();
+        var exit=new MenuFlyoutItem {Text="Выйти из EdgeLink"};exit.Click+=(_,_)=>ExitFromTray();
+        flyout.Items.Add(open);flyout.Items.Add(toggle);flyout.Items.Add(new MenuFlyoutSeparator());flyout.Items.Add(exit);
+        flyout.Opening+=(_,_)=>toggle.IsEnabled=!previewMode&&!connecting&&!installing&&input!=null;menu.Flyout=flyout;Grid.SetColumn(menu,1);footer.Children.Add(menu);Grid.SetRow(footer,2);Root.Children.Add(footer);
+
         var home=Page();
-        var connectionCard=(RoundedPanel)Theme.Card("", "",connectionHeading,hero,new StatusActionPanel(status,connect));connectionCard.Accent=true;home.Controls.Add(connectionCard);
-        home.Controls.Add(new SplitCardsPanel(
-            Theme.Card("Одна мышь и клавиатура","",inputHint),
-            Theme.Card("Звук в наушниках ПК","Выберите аудиовыход в параметрах. Звук Windows и Mac смешивается.")));
-        home.Controls.Add(Theme.Label("Закрытие окна скрывает EdgeLink в трей. Соединение продолжает работать.",9,muted:true));
-        var wizard=Page();
-        wizard.Controls.Add(setupProgress);
-        var stages = new[] {
-            Theme.Card("1. Добавить Mac","Соедините свободные Ethernet-порты кабелем. На Mac выдайте разрешения и сохраните файл подключения.",Theme.Label("Откройте файл .edgelink здесь или перетащите его в это окно.",10,muted:true),Theme.Row(importPairing)),
-            Theme.Card("2. Выберите наушники","Полученный звук Mac будет смешиваться со звуком Windows.",Theme.Field("Аудиовыход",device),Theme.Field("Mac расположен",side),Theme.Label("Основной монитор и минимальный буфер выбраны автоматически. Их можно изменить позже.",10,muted:true)),
-            Theme.Card("3. Подключитесь","Mac должен показывать «Mac ждёт ваш ПК». Если соединение блокируется, настройте firewall одной кнопкой.",Theme.Row(firewall),Theme.Row(CreateWizardConnect()),Theme.Label("Запрос администратора нужен только для правила Windows Firewall.",10,muted:true)),
-            Theme.Card("4. Проверьте переход","Доведите курсор до края выбранного экрана в сторону Mac. Для возврата пройдите через противоположный край Mac.",Theme.Label("Ctrl + Alt + Esc немедленно вернёт управление на ПК.",12,true),Theme.Label("Переход выполняется, когда клавиши и кнопки мыши отпущены.",10,muted:true))
-        };
-        foreach(var p in stages) {setupStages.Add(p);wizard.Controls.Add(p);}
-        wizard.Controls.Add(setupHint);wizardCard=Theme.Row(setupBack,setupNext);wizardCard.BackColor=Theme.Background;wizard.Controls.Add(wizardCard);
-        setupBack.Click+=(_,_)=>{setupStage=Math.Max(0,setupStage-1);UpdateWizard();};
-        setupNext.Click+=(_,_)=>{if(setupStage==3){setupComplete=true;SaveSettings();SelectPage(0);}else{setupStage++;UpdateWizard();}};
-        AllowDrop=true; DragEnter+=(_,e)=>{if(e.Data?.GetData(DataFormats.FileDrop) is string[] f && f.Length==1 && Path.GetExtension(f[0]).Equals(".edgelink",StringComparison.OrdinalIgnoreCase)) e.Effect=DragDropEffects.Copy;};
-        DragDrop+=async (_,e)=>{if(e.Data?.GetData(DataFormats.FileDrop) is string[] f && f.Length==1) await ImportPairing(f[0],false);};
-        var preferences=Page();
-        // The wizard and settings share values, not Control instances: move the selectors only when needed.
-        preferences.Controls.Add(Theme.Card("Рабочий стол","Выберите монитор ПК, у края которого начнётся переход.",Theme.Field("Экран ПК",screen),Theme.Field("Передача мыши",mouseRate),Theme.Field("Скорость мыши",gain),swap));
-        var audioSettings=Theme.Card("Звук и расположение","Выбранные здесь параметры используются при следующем соединении.");
-        audioSettings.Tag="audio-settings"; preferences.Controls.Add(audioSettings);
-        preferences.Controls.Add(Theme.Card("Соединение","Обычно достаточно автоматического поиска: адреса вручную не нужны.",automatic,reconnect));
-        manualNetwork=Theme.Card("Ручное подключение","Используйте только если автоматический поиск не подходит. Ключ берётся из EdgeLink на Mac.",Theme.Field("IPv4 ПК",local),Theme.Field("IPv4 Mac",remote),Theme.Field("Ключ с Mac",pairing));preferences.Controls.Add(manualNetwork);manualNetwork.Visible=!automatic.Checked;
-        preferences.Controls.Add(Theme.Card("Обновления","Новые версии из b0rdik/EdgeLink. Загрузка начинается после подтверждения.",Theme.Row(updateButton),updateStatus));
-        preferences.Controls.Add(Theme.Card("Диагностика","Показатели текущего соединения. Полная задержка звука здесь не измеряется.",stats));
-        automatic.CheckedChanged+=(_,_)=>{if(manualNetwork!=null)manualNetwork.Visible=!automatic.Checked;};
-        side.SelectedIndexChanged+=(_,_)=>UpdateWizard();
-        pairing.TextChanged+=(_,_)=>UpdateWizard();
-        SelectPage(0);UpdateWizard();ResumeLayout(true);
+        var macContent=Theme.Stack(new FontIcon {Glyph="\uE7F4",FontSize=38,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Mac",17,true),Theme.Label("",12,muted:true));
+        var pcContent=Theme.Stack(new FontIcon {Glyph="\uE7F8",FontSize=38,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Windows",17,true),Theme.Label("Мышь · клавиатура · наушники",12,muted:true));
+        foreach(var text in macContent.Children.OfType<TextBlock>().Concat(pcContent.Children.OfType<TextBlock>()))text.TextAlignment=TextAlignment.Center;
+        macTile.Child=macContent;pcTile.Child=pcContent;macTile.Padding=pcTile.Padding=new Thickness(12,18,12,18);
+        hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(80)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
+        var center=Theme.Stack(new FontIcon {Glyph="\uE8AB",FontSize=25},heroLabel);center.VerticalAlignment=VerticalAlignment.Center;center.HorizontalAlignment=HorizontalAlignment.Center;Grid.SetColumn(center,1);hero.Children.Add(center);hero.Children.Add(macTile);hero.Children.Add(pcTile);
+        connectionCard.Child=Theme.Stack(connectionHeading,hero,new StatusActionRow(status,connect));connectionCard.BorderBrush=new SolidColorBrush(Windows.UI.Color.FromArgb(255,55,91,85));
+        home.Children.Add(connectionCard);
+        home.Children.Add(new ResponsiveCards(Theme.Card("Одна мышь и клавиатура","",inputHint),Theme.Card("Звук в наушниках ПК","Звук Windows и Mac смешивается. Выберите аудиовыход в параметрах.")));
+        home.Children.Add(Theme.Label("Крестик скрывает окно в трей. Соединение продолжает работать.",12,muted:true));
+
+        var wizard=Page();var progress=new Grid {Margin=new Thickness(0,4,0,8)};
+        string[] steps=["Добавить Mac","Наушники","Соединение","Готово"];
+        for(int i=0;i<4;i++) {
+            progress.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
+            var number=Theme.Label((i+1).ToString(),12,true);number.HorizontalAlignment=HorizontalAlignment.Center;number.VerticalAlignment=VerticalAlignment.Center;
+            var dot=new Border {Width=24,Height=24,CornerRadius=new CornerRadius(12),Child=number};var text=Theme.Label(steps[i],12);text.TextAlignment=TextAlignment.Center;
+            var step=Theme.Stack(dot,text);step.Spacing=6;step.HorizontalAlignment=HorizontalAlignment.Center;Grid.SetColumn(step,i);progress.Children.Add(step);
+            progressTitles.Add(text);progressDots.Add(dot);progressNumbers.Add(number);
+        }
+        wizard.Children.Add(progress);
+        foreach(var value in device.Items)wizardDevice.Items.Add(value);wizardSide.Items.Add("Mac слева");wizardSide.Items.Add("Mac справа");
+        wizardDevice.SelectedIndex=device.SelectedIndex;wizardSide.SelectedIndex=side.SelectedIndex;
+        Synchronize(device,wizardDevice);Synchronize(side,wizardSide);
+        var wizardConnect=Theme.Button("Подключить и проверить",true);wizardConnect.Click+=async (_,_)=> {if(previewMode)return;manuallyPaused=false;await Connect();UpdateWizard();};
+        setupStages.Add(Theme.Card("1. Добавить Mac","Соедините свободные Ethernet-порты кабелем. На Mac выдайте разрешения и сохраните файл подключения.",Theme.Label("Откройте файл .edgelink здесь или перетащите его в это окно.",14,muted:true),importPairing));
+        setupStages.Add(Theme.Card("2. Выберите наушники","Полученный звук Mac смешивается со звуком Windows.",Theme.Field("Аудиовыход",wizardDevice),Theme.Field("Mac расположен",wizardSide),Theme.Label("Монитор и буфер можно изменить в параметрах.",14,muted:true)));
+        setupStages.Add(Theme.Card("3. Подключитесь","Mac должен показывать «Mac ждёт ваш ПК».",firewall,wizardConnect,Theme.Label("Запрос администратора нужен только для правила Windows Firewall.",13,muted:true)));
+        setupStages.Add(Theme.Card("4. Проверьте переход","Доведите курсор до края выбранного экрана в сторону Mac. Для возврата пройдите через противоположный край Mac.",Theme.Label("Ctrl + Alt + Esc немедленно вернёт управление на ПК.",16,true),Theme.Label("Переход выполняется, когда клавиши и кнопки мыши отпущены.",14,muted:true)));
+        foreach(var stage in setupStages)wizard.Children.Add(stage);wizard.Children.Add(setupHint);
+        var actions=new StackPanel {Orientation=Orientation.Horizontal,Spacing=12};actions.Children.Add(setupBack);actions.Children.Add(setupNext);wizard.Children.Add(actions);
+        setupBack.Click+=(_,_)=> {setupStage=Math.Max(0,setupStage-1);UpdateWizard();};
+        setupNext.Click+=(_,_)=> {if(setupStage==3){setupComplete=true;if(!previewMode)SaveSettings();SelectPage(0);}else{setupStage++;UpdateWizard();}};
+        Root.AllowDrop=!previewMode;Root.DragOver+=(_,e)=> {if(e.DataView.Contains(StandardDataFormats.StorageItems)){e.AcceptedOperation=DataPackageOperation.Copy;e.DragUIOverride.Caption="Добавить Mac";}};
+        Root.Drop+=async (_,e)=> {if(previewMode)return;var items=await e.DataView.GetStorageItemsAsync();if(items.Count==1&&Path.GetExtension(items[0].Path).Equals(".edgelink",StringComparison.OrdinalIgnoreCase))await ImportPairing(items[0].Path,setupComplete);};
+
+        var preferences=Page();preferences.Children.Add(Theme.Card("Рабочий стол","Выберите монитор ПК, у края которого начнётся переход.",Theme.Field("Экран ПК",screen),Theme.Field("Передача мыши",mouseRate),Theme.Field("Скорость мыши",gain),swap));
+        preferences.Children.Add(Theme.Card("Звук и расположение","Параметры используются при следующем соединении.",Theme.Field("Аудиовыход",device),Theme.Field("Mac расположен",side),Theme.Field("Буфер звука",jitter)));
+        preferences.Children.Add(Theme.Card("Соединение","Обычно достаточно автоматического поиска.",automatic,reconnect));
+        manualNetwork=Theme.Card("Ручное подключение","Используйте, если автоматический поиск не подходит.",Theme.Field("IPv4 ПК",local),Theme.Field("IPv4 Mac",remote),Theme.Field("Ключ с Mac",pairing));preferences.Children.Add(manualNetwork);
+        preferences.Children.Add(Theme.Card("Обновления","Новые версии из b0rdik/EdgeLink. Установка — после подтверждения.",updateButton,updateStatus));
+        preferences.Children.Add(Theme.Card("Диагностика","Показатели текущего соединения. Полная задержка звука здесь не измеряется.",stats));
+        automatic.Checked+=(_,_)=>UpdateManualNetwork();automatic.Unchecked+=(_,_)=>UpdateManualNetwork();
+        side.SelectionChanged+=(_,_)=>UpdateWizard();pairing.PasswordChanged+=(_,_)=>UpdateWizard();
+        Content=Root;SelectPage(0);UpdateManualNetwork();UpdateWizard();
     }
-    private Button CreateWizardConnect() { var b=Theme.Button("Подключить и проверить",true);b.Click+=async (_,_)=>{manuallyPaused=false;await Connect();UpdateWizard();};return b; }
-    private VerticalStackPanel Page()
-    {
-        var panel=new VerticalStackPanel { Dock=DockStyle.Fill,AutoScroll=true,BackColor=Theme.Background,Margin=Padding.Empty,Padding=new Padding(0,0,4,0) };
-        content.Controls.Add(panel);pages.Add(panel);return panel;
+    private void Synchronize(ComboBox original,ComboBox mirror) {
+        void Sync(ComboBox source,ComboBox target) {if(syncingSelectors)return;syncingSelectors=true;try{target.SelectedIndex=source.SelectedIndex;}finally{syncingSelectors=false;}}
+        original.SelectionChanged+=(_,_)=>Sync(original,mirror);mirror.SelectionChanged+=(_,_)=>Sync(mirror,original);
     }
-    private void SelectPage(int index)
-    {
-        for(int i=0;i<pages.Count;i++) pages[i].Visible=i==index;
-        if(index<pages.Count)pages[index].BringToFront();
-        for(int i=0;i<navigation.Count;i++){navigation[i].BackColor=i==index ? Color.FromArgb(70,73,77) : Theme.Sidebar;navigation[i].ForeColor=i==index ? Theme.Text : Theme.Muted;navigation[i].Invalidate();}
-        if(index==2) MoveAudioSettings(); else if(index==1) MoveWizardAudio();
-        if(index<pages.Count)pages[index].PerformLayout();
+    private StackPanel Page() {var page=new StackPanel {Spacing=16,Margin=new Thickness(0,0,16,20)};pages.Add(page);return page;}
+    private void SelectPage(int index) {
+        if(index<0||index>=pages.Count)return;
+        if(selectedPage==index&&ReferenceEquals(viewport.Content,pages[index]))return;
+        pageOffsets[selectedPage]=viewport.VerticalOffset;selectedPage=index;viewport.Content=pages[index];
+        if(!ReferenceEquals(navigation.SelectedItem,navigationItems[index]))navigation.SelectedItem=navigationItems[index];
+        BeginInvoke(()=>viewport.ChangeView(null,pageOffsets[index],null,true));
     }
-    private void MoveAudioSettings()
-    {
-        if(pages.Count<3)return;var card=pages[2].Controls.Cast<Control>().First(c=>Equals(c.Tag,"audio-settings"));
-        var stack=card;
-        foreach(var c in new Control[]{device,side,jitter}) if(c.Parent!=null) {var field=c.Parent;field.Controls.Remove(c);}
-        while(stack.Controls.Count>2) {var field=stack.Controls[2];stack.Controls.Remove(field);field.Dispose();}
-        foreach(var field in new[]{Theme.Field("Аудиовыход",device),Theme.Field("Mac расположен",side),Theme.Field("Буфер звука",jitter)}) stack.Controls.Add(field);
-        stack.PerformLayout();
+    private void UpdateManualNetwork() {
+        if(manualNetwork!=null)manualNetwork.Visibility=automatic.IsChecked==true?Visibility.Collapsed:Visibility.Visible;
+        local.IsEnabled=remote.IsEnabled=automatic.IsChecked!=true&&link==null;
     }
-    private void MoveWizardAudio()
-    {
-        if(setupStages.Count<2)return;var stack=setupStages[1];
-        // Fixed rows 2 and 3 are the reusable containers created for the wizard selectors.
-        for(int i=0;i<2;i++){Control c=i==0 ? device : side;var field=(FieldPanel)stack.Controls[i+2];field.Attach(c);}
-    }
-    private void UpdateWizard()
-    {
+    private void UpdateWizard() {
         if(setupStages.Count==0)return;
-        for(int i=0;i<setupStages.Count;i++)setupStages[i].Visible=i==setupStage;
-        connectionHeading.Text=link==null ? "Давайте подключимся" : input?.Active==true ? "Управление на Mac" : "Всё подключено";
-        inputHint.Text=side.SelectedIndex==0 ? "Доведите курсор до левого края экрана ПК. На Mac он появится справа." : "Доведите курсор до правого края экрана ПК. На Mac он появится слева.";
-        setupHint.Text=setupStage==2 ? (link!=null ? "Соединение установлено. Можно продолжить." : lastError.Length>0 ? lastError : "Нажмите «Подключить и проверить».") : setupStage==0 && HasPairingKey() ? "Ключ доступа сохранён в Credential Manager." : "Настройки можно изменить в любой момент.";
-        setupHint.Visible=setupStage==2;setupProgress.Stage=setupStage;setupProgress.Invalidate();setupBack.Enabled=setupStage>0&&!connecting;
-        setupNext.Text=setupStage==3 ? "На главный экран" : "Продолжить";
-        setupNext.Enabled=!connecting&&(setupStage==0 ? HasPairingKey() : setupStage==2 ? link!=null : true);
-        hero.Connected=link!=null;hero.Active=input?.Active==true;hero.MacLeft=side.SelectedIndex==0;hero.Invalidate();
-        if(pages.Count>0)pages[0].PerformLayout();
-        if(pages.Count>1)pages[1].PerformLayout();
-    }
-    private void UpdateViewport()
-    {
-        if(dashboardRoot==null)return;
-        bool compact=ClientSize.Width<UiLayout.Px(this,820);
-        int horizontal=UiLayout.Px(this,compact?20:26);
-        dashboardRoot.Padding=new Padding(horizontal,UiLayout.Px(this,16),horizontal,0);
-        foreach(var page in pages)page.PerformLayout();
-    }
-    private void FitWindow()
-    {
-        var area=Screen.FromControl(this).WorkingArea;int gap=UiLayout.Px(this,16);
-        int maxWidth=Math.Max(1,area.Width-gap*2),maxHeight=Math.Max(1,area.Height-gap*2);
-        MinimumSize=new Size(Math.Min(UiLayout.Px(this,680),maxWidth),Math.Min(UiLayout.Px(this,560),maxHeight));
-        Size=new Size(Math.Min(Width,maxWidth),Math.Min(Height,maxHeight));
-        Location=new Point(area.Left+(area.Width-Width)/2,area.Top+(area.Height-Height)/2);
-        UpdateViewport();
-    }
-    protected override void OnDpiChanged(DpiChangedEventArgs e)
-    {
-        base.OnDpiChanged(e);UpdateViewport();
+        for(int i=0;i<4;i++) {
+            setupStages[i].Visibility=i==setupStage?Visibility.Visible:Visibility.Collapsed;
+            progressTitles[i].Foreground=i<=setupStage?Theme.Mint:Theme.Resource("TextFillColorSecondaryBrush");
+            progressDots[i].Background=i<=setupStage?Theme.Mint:Theme.Resource("ControlFillColorDefaultBrush");
+            progressNumbers[i].Foreground=i<=setupStage?new SolidColorBrush(Windows.UI.Color.FromArgb(255,20,32,30)):Theme.Resource("TextFillColorSecondaryBrush");
+            progressNumbers[i].Text=i<setupStage?"✓":(i+1).ToString();
+        }
+        connectionHeading.Text=link==null?"Давайте подключимся":input?.Active==true?"Управление на Mac":"Всё подключено";
+        inputHint.Text=side.SelectedIndex==0?"Доведите курсор до левого края экрана ПК. На Mac он появится справа.":"Доведите курсор до правого края экрана ПК. На Mac он появится слева.";
+        Grid.SetColumn(macTile,side.SelectedIndex==0?0:2);Grid.SetColumn(pcTile,side.SelectedIndex==0?2:0);
+        ((TextBlock)((StackPanel)macTile.Child).Children[2]).Text=side.SelectedIndex==0?"Экран слева":"Экран справа";
+        macTile.BorderBrush=link!=null&&input?.Active==true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");
+        pcTile.BorderBrush=link!=null&&input?.Active!=true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");
+        setupHint.Text=link!=null?"Соединение установлено. Можно продолжить.":lastError.Length>0?lastError:"Нажмите «Подключить и проверить».";
+        setupHint.Visibility=setupStage==2?Visibility.Visible:Visibility.Collapsed;
+        setupBack.IsEnabled=setupStage>0&&!connecting;setupNext.Text=setupStage==3?"На главный экран":"Продолжить";
+        setupNext.IsEnabled=!connecting&&(setupStage==0?HasPairingKey():setupStage==2?link!=null:true);
     }
 }

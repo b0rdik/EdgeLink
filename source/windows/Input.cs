@@ -1,10 +1,11 @@
 using System.Runtime.InteropServices;
+using System.Drawing;
 
 namespace EdgeLink;
 
 internal sealed class Input : IDisposable
 {
-    private readonly Control owner;
+    private readonly Action<Action> dispatch;
     private readonly InputPump pump;
     private Link? connection;
     private readonly Native.Hook keyboardCallback, mouseCallback;
@@ -27,10 +28,10 @@ internal sealed class Input : IDisposable
     private double Gain = 1;
     public bool Active => active;
     public event Action? Changed;
-    public Input(Control owner)
+    public Input(Action<Action> dispatch)
     {
-        this.owner = owner;
-        pcBounds = Screen.PrimaryScreen!.Bounds;
+        this.dispatch = dispatch;
+        pcBounds = Desktop.PrimaryScreen.Bounds;
         keyboardCallback = Keyboard; mouseCallback = Mouse;
         pump = new InputPump(Install, Cleanup, Raw);
     }
@@ -48,7 +49,7 @@ internal sealed class Input : IDisposable
     public void Disconnect() { pump.Invoke(() => { ReturnCore(); connection = null; }); }
     private void NotifyChanged()
     {
-        try { if (!owner.IsDisposed && owner.IsHandleCreated) owner.BeginInvoke(() => Changed?.Invoke()); }
+        try { dispatch(() => Changed?.Invoke()); }
         catch (InvalidOperationException) { /* dashboard is closing; never block the hook */ }
     }
     private unsafe nint Keyboard(int code, nint message, nint pointer)
@@ -98,7 +99,7 @@ internal sealed class Input : IDisposable
                 clip.Right = clip.Left + 1; clip.Bottom = clip.Top + 1;
                 if (!Native.ClipCursor(ref clip)) { ReturnCore(); return Native.CallNextHookEx(mouseHook, code, message, pointer); }
                 timerResolution = Native.timeBeginPeriod(1) == 0;
-                Cursor.Hide(); NotifyChanged();
+                Desktop.ShowCursor(false); NotifyChanged();
                 return 1;
             }
         }
@@ -145,7 +146,7 @@ internal sealed class Input : IDisposable
         connection?.Command(new { type = "leave", epoch }); active = false;
         UnregisterRaw();
         if (timerResolution) { Native.timeEndPeriod(1); timerResolution = false; }
-        Native.ClipCursor(0); Cursor.Show();
+        Native.ClipCursor(0); Desktop.ShowCursor(true);
         var current = connection;
         int pcY = current == null ? pcBounds.Top + pcBounds.Height / 2 : pcBounds.Top + (int)(y / current.MacHeight * pcBounds.Height);
         Native.SetCursorPos(Side == "left" ? pcBounds.Left + 3 : pcBounds.Right - 4, Math.Clamp(pcY, pcBounds.Top, pcBounds.Bottom - 1));

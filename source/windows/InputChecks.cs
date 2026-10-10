@@ -14,8 +14,7 @@ internal static class InputChecks
         try {
             int uiThread = Environment.CurrentManagedThreadId;
             uint before = MouseRegistrations();
-            using var owner = new Control(); _ = owner.Handle;
-            using (var input = new Input(owner)) {
+            using (var input = new Input(_ => { })) {
                 int hookThread = input.ProbeThread().GetAwaiter().GetResult();
                 if (hookThread == uiThread) throw new Exception("Hooks share the UI thread.");
                 if (MouseRegistrations() != before) throw new Exception("Raw mouse is registered while control is on PC.");
@@ -40,6 +39,14 @@ internal static class InputChecks
             }
             if (MouseRegistrations() != before) throw new Exception("Raw registration leaked after input shutdown.");
             results.Add(new { check = "shutdown preserves previous raw registrations", pass = true });
+            int cleaned=0;
+            for(int cycle=0;cycle<5;cycle++) {
+                using var pump=new InputPump(()=>{},()=>Interlocked.Increment(ref cleaned),_=>{});
+                var queued=Enumerable.Range(0,200).Select(value=>pump.Query(()=>value)).ToArray();
+                if(!Task.WaitAll(queued,5000)||queued.Where((task,index)=>task.Result!=index).Any())throw new Exception("Win32 work messages lost queued probes.");
+            }
+            if(cleaned!=5)throw new Exception("Win32 pump did not clean up on every restart.");
+            results.Add(new {check="1000 queued Win32 probes and five clean pump restarts",pass=true});
             File.WriteAllText(report, JsonSerializer.Serialize(new { passed = true, results }, new JsonSerializerOptions { WriteIndented = true }));
             return 0;
         } catch (Exception error) {

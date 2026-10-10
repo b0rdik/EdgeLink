@@ -6,11 +6,11 @@
 
 ## Меньше нагрузки от мыши на Windows в 0.3.4
 
-В рабочей ветке `windows/input-validation` обновлён интерфейс Windows: верхние вкладки, компактная схема экранов, ровные карточки и тёмные поля. Это проверочная сборка 0.3.4; опубликованный релиз пока не менялся.
+В рабочей ветке `windows/input-validation` интерфейс Windows перенесён на WinUI 3: стандартные элементы Fluent, верхние вкладки, компактная схема экранов и адаптивные карточки. Это проверочная сборка 0.3.4; опубликованный релиз пока не менялся.
 
-Крестик скрывает окно в системный трей, сохраняя соединение и звук. Чтобы открыть окно, дважды нажмите значок EdgeLink в трее, выберите «Открыть EdgeLink» или запустите EXE ещё раз. Для полного завершения выберите «Выйти из EdgeLink» в меню значка; то же меню доступно правой кнопкой в окне. Перед заменой EXE и диагностикой используйте именно этот выход. Обновление и завершение сеанса Windows могут закрывать процесс штатно.
+Крестик скрывает окно в системный трей, сохраняя соединение и звук. Чтобы открыть окно, дважды нажмите значок EdgeLink в трее, выберите «Открыть EdgeLink» или запустите EXE ещё раз. Для полного завершения выберите «Выйти из EdgeLink» в меню значка или в кнопке «Меню» в окне. Перед заменой EXE и диагностикой используйте именно этот выход. Обновление и завершение сеанса Windows могут закрывать процесс штатно.
 
-Дополнительная диагностика `EdgeLink.exe --tray-checks` проверяет настоящий NotifyIcon и жизненный цикл окна; отчёт — `%TEMP%/EdgeLink-tray-checks.json`. `EdgeLink.exe --ui-preview` открывает изолированный интерфейс без личных настроек, ключа, перехвата ввода, сети и звука.
+Дополнительная диагностика `EdgeLink.exe --tray-checks` проверяет настоящий значок Shell и жизненный цикл окна; отчёт — `%TEMP%/EdgeLink-tray-checks.json`. `EdgeLink.exe --ui-preview` открывает изолированный интерфейс без личных настроек, ключа, перехвата ввода, сети и звука.
 
 Перехват мыши и клавиатуры перенесён в отдельный поток с собственной очередью Windows. Работа интерфейса больше не блокирует этот поток. Пока курсор находится на ПК, Raw Input отключён; проверка состояния кнопок выполняется только у края перехода, без создания массива на каждое движение. При управлении Mac включается Raw Input с одним заранее выделенным буфером; при возвращении на ПК регистрация и повышенная точность таймера снимаются.
 
@@ -122,8 +122,10 @@ Mac подписан Apple Development, но пока без Developer ID/notari
 
 Проверены сборки обеих платформ, криптография/неверный ключ, Swift ↔ .NET handshake, обнаружение с nonce/отпечатком без передачи ключа, UDP-звук, heartbeat/разрыв, повторное открытие портов, ограничение аудиобуфера, обработка старых пакетов и разрывов, разбор метаданных обновлений, запрет downgrade/опасных архивов. Проверены первичная группа иконок Windows в PE и стабильность designated requirement при изменении подписанного bundle. На Mac выполнена реальная замена отдельного тестового bundle и отклонение повреждённой подписи. Новый SwiftUI интерфейс проверен визуально в безопасном preview-режиме. Подробности в `verification.txt`.
 
-Ещё не проверены: запуск Windows UI/WASAPI и установщик PowerShell на Windows, реальные HID-устройства, физический переход курсора, разрешения macOS для установленного приложения и полная задержка наушников.
+Windows-оболочка в ветке `windows/input-validation` переведена на WinUI 3 / Windows App SDK. Самодостаточный EXE включает .NET 10 и Windows App Runtime; MSIX и отдельная установка runtime не требуются. Крестик скрывает окно в трей, полный выход доступен в «Меню → Выйти из EdgeLink» и меню значка трея. Опубликованный релиз 0.3.4 ещё использует прежнюю оболочку. Результаты нативных Windows-проверок и текущий коммит: `docs/HANDOFF-WINDOWS.md`.
 
-Mac: Xcode Command Line Tools, `bash source/build-mac.sh`. Windows: .NET SDK 10, `powershell -ExecutionPolicy Bypass -File source/build-windows.ps1`. Иконки: `python3 source/assets/build-icons.py` на Mac. Проверки протокола: `bash source/run-checks.sh` на Mac с установленным .NET SDK 10. Публикация сборок описана в `source/RELEASING.md`. Лицензии NAudio и .NET включены в `licenses/`.
+Ещё требуют проверки: установщик PowerShell с новой оболочкой, реальные HID-устройства при 4000/8000 Гц, физический переход курсора и полная задержка наушников. Ранее пользователь подтвердил соединение и звук с Mac 0.3.3.
+
+Mac: Xcode Command Line Tools, `bash source/build-mac.sh`. Windows: .NET SDK 10 на Windows, `powershell -ExecutionPolicy Bypass -File source/build-windows.ps1`; XAML-компилятор WinUI требует Windows. Иконки: `python3 source/assets/build-icons.py` на Mac. Проверки протокола: `bash source/run-checks.sh` на Mac с установленным .NET SDK 10. Публикация сборок описана в `source/RELEASING.md`. Лицензии NAudio и .NET включены в `licenses/`.
 
 Документация: [Ethernet на Mac](https://support.apple.com/en-gb/guide/mac-help/-mh11939/mac), [автоматический IPv4 Windows](https://learn.microsoft.com/nb-no/windows-server/troubleshoot/how-to-use-automatic-tcpip-addressing-without-a-dh?branch=pr-en-us-959), [ScreenCaptureKit](https://developer.apple.com/documentation/screencapturekit), [CGEvent](https://developer.apple.com/documentation/coregraphics/cgevent), [WASAPI](https://learn.microsoft.com/en-us/windows-hardware/drivers/audio/low-latency-audio), [NAudio](https://github.com/naudio/NAudio), [GitHub Releases API](https://docs.github.com/en/rest/releases/releases).

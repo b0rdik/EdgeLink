@@ -1,55 +1,26 @@
 using System.Text.Json;
 
 namespace EdgeLink;
-
-// Real NotifyIcon and window lifecycle, isolated from settings, pairing, hooks,
-// network and audio. No synthetic mouse/keyboard input or system shutdown.
 internal static class TrayChecks
 {
-    public static int Run()
-    {
-        int result = 1;
-        using var window = new MainWindow(layoutCheck: true, trayCheck: true);
-        window.Shown += (_, _) => window.BeginInvoke(async () =>
-        {
-            string report = Path.Combine(Path.GetTempPath(), "EdgeLink-tray-checks.json");
-            var checks = new List<string>();
-            try
-            {
-                await window.VerifyTray(checks);
-                File.WriteAllText(report, JsonSerializer.Serialize(new { passed = true, checks }, new JsonSerializerOptions { WriteIndented = true }));
-                result = 0;
-            }
-            catch (Exception error) { File.WriteAllText(report, JsonSerializer.Serialize(new { passed = false, checks, error = error.ToString() }, new JsonSerializerOptions { WriteIndented = true })); }
-            finally { if (!window.IsDisposed) window.ExitFromTray(); }
-        });
-        Application.Run(window); return result;
+    internal static async Task<int> Run(MainWindow window) {
+        var checks=new List<object>();var failures=new List<string>();
+        try{await window.VerifyTray(checks,failures);}catch(Exception e){failures.Add(e.ToString());}
+        File.WriteAllText(Path.Combine(Path.GetTempPath(),"EdgeLink-tray-checks.json"),JsonSerializer.Serialize(new {Framework="WinUI 3",Version=Updates.CurrentVersion,Checks=checks,Failures=failures},new JsonSerializerOptions {WriteIndented=true}));
+        return failures.Count==0?0:1;
     }
 }
-
-internal sealed partial class MainWindow
+public sealed partial class MainWindow
 {
-    internal async Task VerifyTray(List<string> checks)
-    {
-        void Check(bool condition, string name) { if (!condition) throw new Exception(name); checks.Add(name); }
-        Check(trayIcon?.Visible == true, "Native tray icon is registered");
-        Close(); Application.DoEvents();
-        Check(!IsDisposed && !Visible && trayIcon?.Visible == true, "Window close hides the window and preserves the tray lifetime");
-        await AcceptInvocation(null); Application.DoEvents();
-        Check(Visible && !IsDisposed, "Second invocation restores the same hidden window");
-        Close(); ((ToolStripMenuItem)trayMenu!.Items[0]).PerformClick(); Application.DoEvents();
-        Check(Visible && !IsDisposed, "Tray Open menu restores the hidden window");
-        WindowState = FormWindowState.Minimized; RestoreFromTray(); Application.DoEvents();
-        Check(Visible && WindowState == FormWindowState.Normal, "Tray open restores a minimized window");
-        using (var updaterWindow = new MainWindow(layoutCheck: true, trayCheck: true))
-        {
-            updaterWindow.Show(); updaterWindow.installing = true; updaterWindow.Close();
-            Check(updaterWindow.IsDisposed && updaterWindow.trayIcon == null, "Updater close exits and removes the tray icon");
-        }
-        var shutdown = new FormClosingEventArgs(CloseReason.WindowsShutDown, false);
-        OnFormClosing(shutdown);
-        Check(!shutdown.Cancel, "Windows shutdown close is not intercepted (closing event only)");
-        ((ToolStripMenuItem)trayMenu!.Items[trayMenu.Items.Count - 1]).PerformClick();
-        Check(IsDisposed && trayIcon == null, "Explicit tray exit closes the window and removes the icon");
+    internal async Task VerifyTray(List<object> checks,List<string> failures) {
+        void Check(string name,bool pass){checks.Add(new{Name=name,Passed=pass});if(!pass)failures.Add(name);}
+        Check("Shell notification icon registered",trayIcon?.Registered==true);
+        Desktop.PostMessage(Handle,0x10,0,0);await Settle();Check("Window close hides without terminating",!IsDisposed&&!Desktop.IsWindowVisible(Handle));
+        await AcceptInvocation(null);await Settle();Check("Second instance invocation restores",Desktop.IsWindowVisible(Handle)&&!IsDisposed);
+        Desktop.ShowWindow(Handle,0);trayIcon!.Route(1);await Settle();Check("Tray Open restores",Desktop.IsWindowVisible(Handle));
+        Desktop.ShowWindow(Handle,6);RestoreFromTray();await Settle();Check("Restore leaves minimized state",!Desktop.IsIconic(Handle));
+        ShuttingDown=true;Check("OS shutdown bypasses hide",!ShouldHideOnClose);ShuttingDown=false;
+        installing=true;Check("Installer close bypasses hide",!ShouldHideOnClose);installing=false;
+        var icon=trayIcon;icon.Route(3);Check("Explicit Exit disposes window and tray",IsDisposed&&!icon.Registered);
     }
 }
