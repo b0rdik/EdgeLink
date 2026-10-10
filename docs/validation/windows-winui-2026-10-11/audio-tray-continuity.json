@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "311f7eaee71f7a8b7e68d6a2ff197e96a68d6c08",
+  "source": "native UI accessibility snapshots",
+  "packetsBeforeTray": 20984,
+  "packetsAfterRestore": 32024,
+  "underrunsBeforeTray": 2,
+  "underrunsAfterRestore": 2,
+  "targetMsBeforeTray": 30,
+  "targetMsAfterRestore": 30,
+  "bufferedMsBeforeTray": 48.0,
+  "bufferedMsAfterRestore": 27.1,
+  "headsetListeningByAgent": false
+}

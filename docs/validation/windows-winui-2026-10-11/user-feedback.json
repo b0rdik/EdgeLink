@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "311f7eaee71f7a8b7e68d6a2ff197e96a68d6c08",
+  "feedbackSource": "human user in this chat",
+  "mousePollingHzReported": 4000,
+  "cursorGoodConfirmed": true,
+  "headsetAudioGoodConfirmed": true,
+  "pollingRateMeasuredByAgent": false,
+  "mode8000HzTested": false,
+  "allKeyboardKeysTested": false,
+  "detailedScreenTransitionSequenceConfirmed": false
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "module": "Microsoft.WindowsAppRuntime.dll",
+    "loadedFromSingleFileExtraction": true
+  },
+  {
+    "module": "Microsoft.UI.Xaml.dll",
+    "loadedFromSingleFileExtraction": true
+  }
+]

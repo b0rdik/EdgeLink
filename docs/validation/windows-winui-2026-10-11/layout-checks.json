@@ -1,0 +1,584 @@
+{
+  "Framework": "WinUI 3",
+  "Version": "0.3.4",
+  "Dpi": 96,
+  "Cases": [
+    {
+      "Name": "0-664x521-settings",
+      "Width": 664,
+      "Height": 521,
+      "Page": 2,
+      "ScrollHeight": 1044
+    },
+    {
+      "Name": "0-664x521-scroll",
+      "ScrollHeight": 1044,
+      "LastBottom": 296,
+      "ViewportHeight": 316
+    },
+    {
+      "Name": "0-664x521-wizard-0",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 39
+    },
+    {
+      "Name": "0-664x521-wizard-1",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 56
+    },
+    {
+      "Name": "0-664x521-wizard-2",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 106
+    },
+    {
+      "Name": "0-664x521-wizard-3",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 21
+    },
+    {
+      "Name": "0-664x521-home",
+      "Width": 664,
+      "Height": 521,
+      "Page": 0,
+      "ScrollHeight": 291
+    },
+    {
+      "Name": "0-800x600-settings",
+      "Width": 800,
+      "Height": 600,
+      "Page": 2,
+      "ScrollHeight": 965
+    },
+    {
+      "Name": "0-800x600-scroll",
+      "ScrollHeight": 965,
+      "LastBottom": 375,
+      "ViewportHeight": 395
+    },
+    {
+      "Name": "0-800x600-wizard-0",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-800x600-wizard-1",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-800x600-wizard-2",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 27
+    },
+    {
+      "Name": "0-800x600-wizard-3",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-800x600-home",
+      "Width": 800,
+      "Height": 600,
+      "Page": 0,
+      "ScrollHeight": 96
+    },
+    {
+      "Name": "0-1060x760-settings",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 2,
+      "ScrollHeight": 805
+    },
+    {
+      "Name": "0-1060x760-scroll",
+      "ScrollHeight": 805,
+      "LastBottom": 535,
+      "ViewportHeight": 555
+    },
+    {
+      "Name": "0-1060x760-wizard-0",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1060x760-wizard-1",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1060x760-wizard-2",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1060x760-wizard-3",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1060x760-home",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 0,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1400x900-settings",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 2,
+      "ScrollHeight": 665
+    },
+    {
+      "Name": "0-1400x900-scroll",
+      "ScrollHeight": 665,
+      "LastBottom": 675,
+      "ViewportHeight": 695
+    },
+    {
+      "Name": "0-1400x900-wizard-0",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1400x900-wizard-1",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1400x900-wizard-2",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1400x900-wizard-3",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "0-1400x900-home",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 0,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-664x521-settings",
+      "Width": 664,
+      "Height": 521,
+      "Page": 2,
+      "ScrollHeight": 1044
+    },
+    {
+      "Name": "1-664x521-scroll",
+      "ScrollHeight": 1044,
+      "LastBottom": 296,
+      "ViewportHeight": 316
+    },
+    {
+      "Name": "1-664x521-wizard-0",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 39
+    },
+    {
+      "Name": "1-664x521-wizard-1",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 56
+    },
+    {
+      "Name": "1-664x521-wizard-2",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 106
+    },
+    {
+      "Name": "1-664x521-wizard-3",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 21
+    },
+    {
+      "Name": "1-664x521-home",
+      "Width": 664,
+      "Height": 521,
+      "Page": 0,
+      "ScrollHeight": 291
+    },
+    {
+      "Name": "1-800x600-settings",
+      "Width": 800,
+      "Height": 600,
+      "Page": 2,
+      "ScrollHeight": 965
+    },
+    {
+      "Name": "1-800x600-scroll",
+      "ScrollHeight": 965,
+      "LastBottom": 375,
+      "ViewportHeight": 395
+    },
+    {
+      "Name": "1-800x600-wizard-0",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-800x600-wizard-1",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-800x600-wizard-2",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 27
+    },
+    {
+      "Name": "1-800x600-wizard-3",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-800x600-home",
+      "Width": 800,
+      "Height": 600,
+      "Page": 0,
+      "ScrollHeight": 96
+    },
+    {
+      "Name": "1-1060x760-settings",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 2,
+      "ScrollHeight": 805
+    },
+    {
+      "Name": "1-1060x760-scroll",
+      "ScrollHeight": 805,
+      "LastBottom": 535,
+      "ViewportHeight": 555
+    },
+    {
+      "Name": "1-1060x760-wizard-0",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1060x760-wizard-1",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1060x760-wizard-2",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1060x760-wizard-3",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1060x760-home",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 0,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1400x900-settings",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 2,
+      "ScrollHeight": 665
+    },
+    {
+      "Name": "1-1400x900-scroll",
+      "ScrollHeight": 665,
+      "LastBottom": 675,
+      "ViewportHeight": 695
+    },
+    {
+      "Name": "1-1400x900-wizard-0",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1400x900-wizard-1",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1400x900-wizard-2",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1400x900-wizard-3",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "1-1400x900-home",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 0,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-664x521-settings",
+      "Width": 664,
+      "Height": 521,
+      "Page": 2,
+      "ScrollHeight": 1044
+    },
+    {
+      "Name": "2-664x521-scroll",
+      "ScrollHeight": 1044,
+      "LastBottom": 296,
+      "ViewportHeight": 316
+    },
+    {
+      "Name": "2-664x521-wizard-0",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 39
+    },
+    {
+      "Name": "2-664x521-wizard-1",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 56
+    },
+    {
+      "Name": "2-664x521-wizard-2",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 106
+    },
+    {
+      "Name": "2-664x521-wizard-3",
+      "Width": 664,
+      "Height": 521,
+      "Page": 1,
+      "ScrollHeight": 21
+    },
+    {
+      "Name": "2-664x521-home",
+      "Width": 664,
+      "Height": 521,
+      "Page": 0,
+      "ScrollHeight": 291
+    },
+    {
+      "Name": "2-800x600-settings",
+      "Width": 800,
+      "Height": 600,
+      "Page": 2,
+      "ScrollHeight": 965
+    },
+    {
+      "Name": "2-800x600-scroll",
+      "ScrollHeight": 965,
+      "LastBottom": 375,
+      "ViewportHeight": 395
+    },
+    {
+      "Name": "2-800x600-wizard-0",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-800x600-wizard-1",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-800x600-wizard-2",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 27
+    },
+    {
+      "Name": "2-800x600-wizard-3",
+      "Width": 800,
+      "Height": 600,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-800x600-home",
+      "Width": 800,
+      "Height": 600,
+      "Page": 0,
+      "ScrollHeight": 96
+    },
+    {
+      "Name": "2-1060x760-settings",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 2,
+      "ScrollHeight": 805
+    },
+    {
+      "Name": "2-1060x760-scroll",
+      "ScrollHeight": 805,
+      "LastBottom": 535,
+      "ViewportHeight": 555
+    },
+    {
+      "Name": "2-1060x760-wizard-0",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1060x760-wizard-1",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1060x760-wizard-2",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1060x760-wizard-3",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1060x760-home",
+      "Width": 1060,
+      "Height": 760,
+      "Page": 0,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1400x900-settings",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 2,
+      "ScrollHeight": 665
+    },
+    {
+      "Name": "2-1400x900-scroll",
+      "ScrollHeight": 665,
+      "LastBottom": 675,
+      "ViewportHeight": 695
+    },
+    {
+      "Name": "2-1400x900-wizard-0",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1400x900-wizard-1",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1400x900-wizard-2",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1400x900-wizard-3",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 1,
+      "ScrollHeight": 0
+    },
+    {
+      "Name": "2-1400x900-home",
+      "Width": 1400,
+      "Height": 900,
+      "Page": 0,
+      "ScrollHeight": 0
+    }
+  ],
+  "Failures": []
+}

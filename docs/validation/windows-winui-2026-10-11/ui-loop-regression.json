@@ -1,0 +1,9 @@
+{
+  "check": "encrypted UDP audio and mouse progress during a 500 ms UI stall",
+  "baselineSourceCommit": "76501e6ea827d825784c6753e6f2851d87426798",
+  "baselinePassed": false,
+  "fixedSourceCommit": "311f7eaee71f7a8b7e68d6a2ff197e96a68d6c08",
+  "fixedPassed": true,
+  "traffic": "encrypted loopback TCP handshake and UDP; synthetic key in memory only",
+  "hardwareInput": false
+}
