@@ -117,15 +117,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(rootView: Dashboard(state: state))
     }
     private func menuIcon() -> NSImage {
-        let image = NSImage(size: NSSize(width: 23, height: 18), flipped: false) { _ in
-            let path = NSBezierPath(); path.lineWidth = 1.5; path.lineCapStyle = .round; path.lineJoinStyle = .round
-            NSColor.black.setStroke()
-            path.appendRoundedRect(NSRect(x: 1, y: 4, width: 8, height: 10), xRadius: 1.5, yRadius: 1.5)
-            path.appendRoundedRect(NSRect(x: 14, y: 4, width: 8, height: 10), xRadius: 1.5, yRadius: 1.5)
-            path.move(to: NSPoint(x: 7, y: 16)); path.line(to: NSPoint(x: 16, y: 16)); path.line(to: NSPoint(x: 14, y: 18))
-            path.move(to: NSPoint(x: 16, y: 2)); path.line(to: NSPoint(x: 7, y: 2)); path.line(to: NSPoint(x: 9, y: 0))
-            path.stroke(); return true
-        }; image.isTemplate = true; return image
+        let image = NSImage(named: "EdgeLinkStatus") ?? NSImage(size: NSSize(width: 23, height: 18))
+        image.size = NSSize(width: 23, height: 18)
+        image.isTemplate = true
+        return image
     }
     private func renderPreview() {
         state.preview = true; state.localIP = "169.254.42.8"

@@ -15,6 +15,8 @@ swiftc -swift-version 5 -O -target arm64-apple-macos15.0 \
 cp "$SOURCE_DIR/mac/Info.plist" "$APP_DIR/Contents/Info.plist"
 cp "$SOURCE_DIR/assets/EdgeLink.icns" "$APP_DIR/Contents/Resources/EdgeLink.icns"
 cp "$SOURCE_DIR/assets/icon-128.png" "$APP_DIR/Contents/Resources/AppIcon.png"
+cp "$SOURCE_DIR/assets/status-1x.png" "$APP_DIR/Contents/Resources/EdgeLinkStatus.png"
+cp "$SOURCE_DIR/assets/status-2x.png" "$APP_DIR/Contents/Resources/EdgeLinkStatus@2x.png"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_DIR/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_DIR/Contents/Info.plist"
 # Prefer a stable signing identity so TCC grants survive rebuilds; do not embed private keys.
