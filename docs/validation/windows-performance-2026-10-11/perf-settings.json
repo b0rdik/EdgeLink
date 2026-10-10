@@ -1,0 +1,364 @@
+{
+  "scenario": "connected-settings-visible",
+  "productVersion": "0.3.4+57c7e2b2f5bd3bb1437af963aa3d9233622c0fd3",
+  "startedUtc": "2026-10-10T22:37:18.3017147Z",
+  "logicalProcessors": 16,
+  "durationSeconds": 30.307,
+  "sampleCount": 30,
+  "summary": {
+    "averageCpuPercentOfMachine": 0.676673634299893,
+    "averageCpuPercentOfOneLogicalProcessor": 10.826778148798288,
+    "p95SampleCpuPercentOfMachine": 1.730531705974338,
+    "maxSampleCpuPercentOfMachine": 1.8367716998358594,
+    "meanWorkingSetMiB": 136.93138020833334,
+    "meanPrivateCommittedMiB": 71.11315104166667,
+    "workingSetRangeMiB": [
+      135.90625,
+      138.62890625
+    ],
+    "privateCommittedRangeMiB": [
+      70.0859375,
+      72.65625
+    ],
+    "threadsRange": [
+      21.0,
+      25.0
+    ],
+    "handlesRange": [
+      656.0,
+      664.0
+    ]
+  },
+  "samples": [
+    {
+      "elapsedSeconds": 1.0163,
+      "intervalSeconds": 1.0158,
+      "cpuSeconds": 0.28125,
+      "cpuPercentOfMachine": 1.730531705974338,
+      "cpuPercentOfOneLogicalProcessor": 27.688507295589407,
+      "workingSetMiB": 136.3515625,
+      "privateCommittedMiB": 70.0859375,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 2.0403,
+      "intervalSeconds": 1.024,
+      "cpuSeconds": 0.15625,
+      "cpuPercentOfMachine": 0.9536622093664826,
+      "cpuPercentOfOneLogicalProcessor": 15.258595349863722,
+      "workingSetMiB": 136.875,
+      "privateCommittedMiB": 71.1328125,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 3.0515,
+      "intervalSeconds": 1.0112,
+      "cpuSeconds": 0.046875,
+      "cpuPercentOfMachine": 0.28971140874689527,
+      "cpuPercentOfOneLogicalProcessor": 4.635382539950324,
+      "workingSetMiB": 136.875,
+      "privateCommittedMiB": 71.1328125,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 4.0642,
+      "intervalSeconds": 1.0127,
+      "cpuSeconds": 0.125,
+      "cpuPercentOfMachine": 0.7714448587014191,
+      "cpuPercentOfOneLogicalProcessor": 12.343117739222706,
+      "workingSetMiB": 136.90625,
+      "privateCommittedMiB": 71.1328125,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 5.0736,
+      "intervalSeconds": 1.0093,
+      "cpuSeconds": 0.078125,
+      "cpuPercentOfMachine": 0.48377747521672243,
+      "cpuPercentOfOneLogicalProcessor": 7.740439603467559,
+      "workingSetMiB": 136.90625,
+      "privateCommittedMiB": 71.1328125,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 6.0829,
+      "intervalSeconds": 1.0094,
+      "cpuSeconds": 0.140625,
+      "cpuPercentOfMachine": 0.8707330273653325,
+      "cpuPercentOfOneLogicalProcessor": 13.93172843784532,
+      "workingSetMiB": 136.90625,
+      "privateCommittedMiB": 71.1328125,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 7.0945,
+      "intervalSeconds": 1.0116,
+      "cpuSeconds": 0.0625,
+      "cpuPercentOfMachine": 0.386141472745801,
+      "cpuPercentOfOneLogicalProcessor": 6.178263563932816,
+      "workingSetMiB": 136.578125,
+      "privateCommittedMiB": 70.1796875,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 8.1006,
+      "intervalSeconds": 1.006,
+      "cpuSeconds": 0.09375,
+      "cpuPercentOfMachine": 0.5824182956901225,
+      "cpuPercentOfOneLogicalProcessor": 9.31869273104196,
+      "workingSetMiB": 136.578125,
+      "privateCommittedMiB": 70.1796875,
+      "threads": 25,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 9.1086,
+      "intervalSeconds": 1.008,
+      "cpuSeconds": 0.046875,
+      "cpuPercentOfMachine": 0.29065049260592574,
+      "cpuPercentOfOneLogicalProcessor": 4.650407881694812,
+      "workingSetMiB": 136.53515625,
+      "privateCommittedMiB": 70.08984375,
+      "threads": 23,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 10.1187,
+      "intervalSeconds": 1.0102,
+      "cpuSeconds": 0.296875,
+      "cpuPercentOfMachine": 1.8367716998358594,
+      "cpuPercentOfOneLogicalProcessor": 29.38834719737375,
+      "workingSetMiB": 138.625,
+      "privateCommittedMiB": 72.65625,
+      "threads": 23,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 11.1284,
+      "intervalSeconds": 1.0097,
+      "cpuSeconds": 0.046875,
+      "cpuPercentOfMachine": 0.2901553457366685,
+      "cpuPercentOfOneLogicalProcessor": 4.642485531786696,
+      "workingSetMiB": 138.625,
+      "privateCommittedMiB": 72.65625,
+      "threads": 23,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 12.14,
+      "intervalSeconds": 1.0116,
+      "cpuSeconds": 0.0625,
+      "cpuPercentOfMachine": 0.38614590062569193,
+      "cpuPercentOfOneLogicalProcessor": 6.178334410011071,
+      "workingSetMiB": 138.625,
+      "privateCommittedMiB": 72.65625,
+      "threads": 23,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 13.1503,
+      "intervalSeconds": 1.0102,
+      "cpuSeconds": 0.125,
+      "cpuPercentOfMachine": 0.7733297883070953,
+      "cpuPercentOfOneLogicalProcessor": 12.373276612913525,
+      "workingSetMiB": 138.62890625,
+      "privateCommittedMiB": 72.65625,
+      "threads": 23,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 14.1594,
+      "intervalSeconds": 1.0092,
+      "cpuSeconds": 0.140625,
+      "cpuPercentOfMachine": 0.8709303568846858,
+      "cpuPercentOfOneLogicalProcessor": 13.934885710154973,
+      "workingSetMiB": 138.55078125,
+      "privateCommittedMiB": 72.5390625,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 15.1688,
+      "intervalSeconds": 1.0094,
+      "cpuSeconds": 0.09375,
+      "cpuPercentOfMachine": 0.580498231570187,
+      "cpuPercentOfOneLogicalProcessor": 9.287971705122992,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.171875,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 16.1812,
+      "intervalSeconds": 1.0124,
+      "cpuSeconds": 0.09375,
+      "cpuPercentOfMachine": 0.5787561204308584,
+      "cpuPercentOfOneLogicalProcessor": 9.260097926893735,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.171875,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 17.192,
+      "intervalSeconds": 1.0108,
+      "cpuSeconds": 0.140625,
+      "cpuPercentOfMachine": 0.8695197839324478,
+      "cpuPercentOfOneLogicalProcessor": 13.912316542919164,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.171875,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 18.2035,
+      "intervalSeconds": 1.0115,
+      "cpuSeconds": 0.0625,
+      "cpuPercentOfMachine": 0.3861756387604582,
+      "cpuPercentOfOneLogicalProcessor": 6.178810220167331,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.1796875,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 19.2099,
+      "intervalSeconds": 1.0063,
+      "cpuSeconds": 0.078125,
+      "cpuPercentOfMachine": 0.4852179718998017,
+      "cpuPercentOfOneLogicalProcessor": 7.763487550396827,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.1796875,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 20.2184,
+      "intervalSeconds": 1.0086,
+      "cpuSeconds": 0.0625,
+      "cpuPercentOfMachine": 0.38731154969238124,
+      "cpuPercentOfOneLogicalProcessor": 6.1969847950781,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.1796875,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 21.226,
+      "intervalSeconds": 1.0076,
+      "cpuSeconds": 0.09375,
+      "cpuPercentOfMachine": 0.5815399530291893,
+      "cpuPercentOfOneLogicalProcessor": 9.304639248467028,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.30078125,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 22.2377,
+      "intervalSeconds": 1.0117,
+      "cpuSeconds": 0.109375,
+      "cpuPercentOfMachine": 0.67565968106318,
+      "cpuPercentOfOneLogicalProcessor": 10.81055489701088,
+      "workingSetMiB": 135.90625,
+      "privateCommittedMiB": 70.30078125,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 23.2454,
+      "intervalSeconds": 1.0077,
+      "cpuSeconds": 0.0625,
+      "cpuPercentOfMachine": 0.38764867225926025,
+      "cpuPercentOfOneLogicalProcessor": 6.202378756148164,
+      "workingSetMiB": 135.9140625,
+      "privateCommittedMiB": 70.30078125,
+      "threads": 21,
+      "handles": 656
+    },
+    {
+      "elapsedSeconds": 24.2516,
+      "intervalSeconds": 1.0062,
+      "cpuSeconds": 0.125,
+      "cpuPercentOfMachine": 0.7764070831779701,
+      "cpuPercentOfOneLogicalProcessor": 12.422513330847522,
+      "workingSetMiB": 137.31640625,
+      "privateCommittedMiB": 71.72265625,
+      "threads": 22,
+      "handles": 659
+    },
+    {
+      "elapsedSeconds": 25.258,
+      "intervalSeconds": 1.0064,
+      "cpuSeconds": 0.09375,
+      "cpuPercentOfMachine": 0.5822356457642297,
+      "cpuPercentOfOneLogicalProcessor": 9.315770332227675,
+      "workingSetMiB": 137.31640625,
+      "privateCommittedMiB": 71.72265625,
+      "threads": 22,
+      "handles": 659
+    },
+    {
+      "elapsedSeconds": 26.2667,
+      "intervalSeconds": 1.0087,
+      "cpuSeconds": 0.078125,
+      "cpuPercentOfMachine": 0.4840541503214878,
+      "cpuPercentOfOneLogicalProcessor": 7.744866405143805,
+      "workingSetMiB": 137.31640625,
+      "privateCommittedMiB": 71.72265625,
+      "threads": 22,
+      "handles": 659
+    },
+    {
+      "elapsedSeconds": 27.2781,
+      "intervalSeconds": 1.0114,
+      "cpuSeconds": 0.140625,
+      "cpuPercentOfMachine": 0.8689984510600832,
+      "cpuPercentOfOneLogicalProcessor": 13.903975216961332,
+      "workingSetMiB": 137.31640625,
+      "privateCommittedMiB": 71.72265625,
+      "threads": 22,
+      "handles": 659
+    },
+    {
+      "elapsedSeconds": 28.2895,
+      "intervalSeconds": 1.0114,
+      "cpuSeconds": 0.03125,
+      "cpuPercentOfMachine": 0.19310956402645552,
+      "cpuPercentOfOneLogicalProcessor": 3.0897530244232883,
+      "workingSetMiB": 137.3359375,
+      "privateCommittedMiB": 71.76171875,
+      "threads": 23,
+      "handles": 664
+    },
+    {
+      "elapsedSeconds": 29.2999,
+      "intervalSeconds": 1.0104,
+      "cpuSeconds": 0.125,
+      "cpuPercentOfMachine": 0.7731982995080738,
+      "cpuPercentOfOneLogicalProcessor": 12.371172792129181,
+      "workingSetMiB": 137.3046875,
+      "privateCommittedMiB": 71.7109375,
+      "threads": 22,
+      "handles": 661
+    },
+    {
+      "elapsedSeconds": 30.3073,
+      "intervalSeconds": 1.0074,
+      "cpuSeconds": 0.1875,
+      "cpuPercentOfMachine": 1.1633062028404972,
+      "cpuPercentOfOneLogicalProcessor": 18.612899245447956,
+      "workingSetMiB": 137.3046875,
+      "privateCommittedMiB": 71.7109375,
+      "threads": 22,
+      "handles": 661
+    }
+  ]
+}
