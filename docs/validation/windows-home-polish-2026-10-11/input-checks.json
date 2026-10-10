@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "check": "separate input thread; no PC-side raw registration",
+      "pass": true
+    },
+    {
+      "check": "input pump responds while UI is blocked for 300 ms",
+      "pass": true,
+      "elapsedMs": 0.2309
+    },
+    {
+      "check": "shutdown preserves previous raw registrations",
+      "pass": true
+    },
+    {
+      "check": "1000 queued Win32 probes and five clean pump restarts",
+      "pass": true
+    }
+  ]
+}
