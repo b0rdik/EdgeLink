@@ -23,7 +23,7 @@ public sealed partial class MainWindow
     private readonly List<Border> progressDots=[];
     private readonly List<TextBlock> progressNumbers=[];
     private readonly Border macTile=Theme.Card("",""),pcTile=Theme.Card("","");
-    private readonly Grid hero=new() {MinHeight=156};
+    private readonly Grid hero=new() {MinHeight=136};
     private readonly TextBlock heroLabel=Theme.Label("Ethernet",12,muted:true);
     private readonly Border connectionCard=Theme.Card("","");
     private readonly ComboBox wizardDevice=new(),wizardSide=new();
@@ -37,6 +37,7 @@ public sealed partial class MainWindow
     private void BuildDashboard() {
         Root.Background=Theme.Resource("ApplicationPageBackgroundThemeBrush");Root.Padding=new Thickness(24,12,24,0);
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(80)});
+        Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(48)});
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(1,GridUnitType.Star)});
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(48)});
         var brand=new Grid();brand.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(60)});
@@ -50,8 +51,17 @@ public sealed partial class MainWindow
             var item=new NavigationViewItem {Content=names[i],Icon=new FontIcon {Glyph=glyphs[i]},Tag=i};
             navigationItems.Add(item);navigation.MenuItems.Add(item);
         }
-        navigation.SelectionChanged+=(_,e)=> {if(e.SelectedItem is NavigationViewItem item)SelectPage((int)item.Tag);};
-        viewport.Margin=new Thickness(0,16,0,0);navigation.Content=viewport;Grid.SetRow(navigation,1);Root.Children.Add(navigation);
+        // Keep the navigation strip independent of page measurement and scrolling.
+        // Let the native selection animation start before building the next page's layout.
+        navigation.Resources["NavigationViewContentBackground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        navigation.SelectionChanged+=(_,e)=> {
+            if(e.SelectedItem is not NavigationViewItem item)return;int index=(int)item.Tag;
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,()=> {
+                if(!IsDisposed&&navigation.SelectedItem is NavigationViewItem current&&(int)current.Tag==index)SelectPage(index);
+            });
+        };
+        Grid.SetRow(navigation,1);Root.Children.Add(navigation);
+        viewport.Margin=new Thickness(0,16,0,0);Grid.SetRow(viewport,2);Root.Children.Add(viewport);
         var footer=new Grid {BorderBrush=Theme.Resource("DividerStrokeColorDefaultBrush"),BorderThickness=new Thickness(0,1,0,0)};
         footer.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});footer.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
         var shortcut=Theme.Label("Вернуть управление на ПК · Ctrl + Alt + Esc",12,muted:true);shortcut.VerticalAlignment=VerticalAlignment.Center;footer.Children.Add(shortcut);
@@ -60,19 +70,22 @@ public sealed partial class MainWindow
         var toggle=new MenuFlyoutItem {Text="Подключить / отключить"};toggle.Click+=async (_,_)=>await ToggleConnection();
         var exit=new MenuFlyoutItem {Text="Выйти из EdgeLink"};exit.Click+=(_,_)=>ExitFromTray();
         flyout.Items.Add(open);flyout.Items.Add(toggle);flyout.Items.Add(new MenuFlyoutSeparator());flyout.Items.Add(exit);
-        flyout.Opening+=(_,_)=>toggle.IsEnabled=!previewMode&&!connecting&&!installing&&input!=null;menu.Flyout=flyout;Grid.SetColumn(menu,1);footer.Children.Add(menu);Grid.SetRow(footer,2);Root.Children.Add(footer);
+        flyout.Opening+=(_,_)=>toggle.IsEnabled=!previewMode&&!connecting&&!installing&&input!=null;menu.Flyout=flyout;Grid.SetColumn(menu,1);footer.Children.Add(menu);Grid.SetRow(footer,3);Root.Children.Add(footer);
 
         var home=Page();
-        var macContent=Theme.Stack(new FontIcon {Glyph="\uE7F4",FontSize=38,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Mac",17,true),Theme.Label("",12,muted:true));
-        var pcContent=Theme.Stack(new FontIcon {Glyph="\uE7F8",FontSize=38,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Windows",17,true),Theme.Label("Мышь · клавиатура · наушники",12,muted:true));
+        var macContent=Theme.Stack(new FontIcon {Glyph="\uE7F8",FontSize=44,Height=48,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Mac",17,true),Theme.Label("",12,muted:true));
+        var pcContent=Theme.Stack(new FontIcon {Glyph="\uE7F4",FontSize=48,Height=48,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Windows",17,true),Theme.Label("Мышь · клавиатура · наушники",12,muted:true));
         foreach(var text in macContent.Children.OfType<TextBlock>().Concat(pcContent.Children.OfType<TextBlock>()))text.TextAlignment=TextAlignment.Center;
-        macTile.Child=macContent;pcTile.Child=pcContent;macTile.Padding=pcTile.Padding=new Thickness(12,18,12,18);
+        macTile.Child=macContent;pcTile.Child=pcContent;macTile.Padding=pcTile.Padding=new Thickness(12);
         hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(80)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
         var center=Theme.Stack(new FontIcon {Glyph="\uE8AB",FontSize=25},heroLabel);center.VerticalAlignment=VerticalAlignment.Center;center.HorizontalAlignment=HorizontalAlignment.Center;Grid.SetColumn(center,1);hero.Children.Add(center);hero.Children.Add(macTile);hero.Children.Add(pcTile);
         connectionCard.Child=Theme.Stack(connectionHeading,hero,new StatusActionRow(status,connect));connectionCard.BorderBrush=new SolidColorBrush(Windows.UI.Color.FromArgb(255,55,91,85));
         home.Children.Add(connectionCard);
         home.Children.Add(new ResponsiveCards(Theme.Card("Одна мышь и клавиатура","",inputHint),Theme.Card("Звук в наушниках ПК","Звук Windows и Mac смешивается. Выберите аудиовыход в параметрах.")));
-        home.Children.Add(Theme.Label("Крестик скрывает окно в трей. Соединение продолжает работать.",12,muted:true));
+        home.Children.Add(Theme.Card("Статистика в реальном времени","",stats));
+        ToolTipService.SetToolTip(stats,"Обновляется каждую секунду. RTT — время ответа сети; полная задержка звука здесь не измеряется. Пакеты — полученные блоки звука с начала соединения.");
+        var trayHint=Theme.Label("Крестик скрывает окно в трей. Соединение продолжает работать.",12,muted:true);
+        trayHint.Margin=new Thickness(22,4,22,4);home.Children.Add(trayHint);
 
         var wizard=Page();var progress=new Grid {Margin=new Thickness(0,4,0,8)};
         string[] steps=["Добавить Mac","Наушники","Соединение","Готово"];
@@ -104,7 +117,6 @@ public sealed partial class MainWindow
         preferences.Children.Add(Theme.Card("Соединение","Обычно достаточно автоматического поиска.",automatic,reconnect));
         manualNetwork=Theme.Card("Ручное подключение","Используйте, если автоматический поиск не подходит.",Theme.Field("IPv4 ПК",local),Theme.Field("IPv4 Mac",remote),Theme.Field("Ключ с Mac",pairing));preferences.Children.Add(manualNetwork);
         preferences.Children.Add(Theme.Card("Обновления","Новые версии из b0rdik/EdgeLink. Установка — после подтверждения.",updateButton,updateStatus));
-        preferences.Children.Add(Theme.Card("Диагностика","Показатели текущего соединения. Полная задержка звука здесь не измеряется.",stats));
         automatic.Checked+=(_,_)=>UpdateManualNetwork();automatic.Unchecked+=(_,_)=>UpdateManualNetwork();
         side.SelectionChanged+=(_,_)=>UpdateWizard();pairing.PasswordChanged+=(_,_)=>UpdateWizard();
         Content=Root;SelectPage(0);UpdateManualNetwork();UpdateWizard();
@@ -119,7 +131,7 @@ public sealed partial class MainWindow
         if(selectedPage==index&&ReferenceEquals(viewport.Content,pages[index]))return;
         pageOffsets[selectedPage]=viewport.VerticalOffset;selectedPage=index;viewport.Content=pages[index];
         if(navigation.SelectedItem is not NavigationViewItem selected||(int)selected.Tag!=index)navigation.SelectedItem=navigationItems[index];
-        BeginInvoke(()=>viewport.ChangeView(null,pageOffsets[index],null,true));
+        BeginInvoke(()=> {if(selectedPage==index)viewport.ChangeView(null,pageOffsets[index],null,true);});
     }
     private void UpdateManualNetwork() {
         if(manualNetwork!=null)manualNetwork.Visibility=automatic.IsChecked==true?Visibility.Collapsed:Visibility.Visible;

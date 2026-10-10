@@ -23,6 +23,8 @@ public sealed partial class MainWindow
     internal async Task VerifyLayouts(string folder,List<object> cases,List<string> failures) {
         (int width,int height)[] sizes=[(664,521),(800,600),(1060,760),(1400,900)];
         automatic.CheckedValue=false;
+        // Exercise wrapping of live values without opening sockets or loading credentials.
+        stats.Text="RTT: 123 мс · звук: 12,34 Мбит/с (IPv4)\nБуфер: 123,4 мс · запас: 120,0 мс · прерывания: 12345 · пакеты: 1234567890";
         for(int cycle=0;cycle<3;cycle++)foreach(var size in sizes) {
             double scale=Desktop.GetDpiForWindow(Handle)/96.0;
             AppWindow.ResizeClient(new Windows.Graphics.SizeInt32((int)(size.width*scale),(int)(size.height*scale)));
@@ -36,6 +38,21 @@ public sealed partial class MainWindow
             side.SelectedIndex=cycle%2;SelectPage(0);status.Text="Не удалось подключиться: длинное сообщение для проверки переноса текста и доступности кнопки. Проверьте Ethernet, разрешения Mac и Windows Firewall.";UpdateWizard();await Settle();
             if(wizardSide.SelectedIndex!=side.SelectedIndex)failures.Add("Wizard side selector did not mirror settings");
             await CheckLayout($"{cycle}-{size.width}x{size.height}-home",folder,cases,failures,cycle==0);
+            viewport.ChangeView(null,viewport.ScrollableHeight,null,true);await Settle();
+            var hint=(FrameworkElement)pages[0].Children.Last();
+            double homeBottom=hint.TransformToVisual(viewport).TransformBounds(new Windows.Foundation.Rect(0,0,hint.ActualWidth,hint.ActualHeight)).Bottom;
+            if(homeBottom>viewport.ActualHeight+1)failures.Add($"Home bottom unreachable at {size}: {homeBottom}/{viewport.ActualHeight}");
+            if(!Descendants(pages[0]).Contains(stats)||Descendants(pages[2]).Contains(stats))failures.Add("Live statistics are not on Home only");
+            cases.Add(new {Name=$"{cycle}-{size.width}x{size.height}-home-scroll",LastBottom=homeBottom,ViewportHeight=viewport.ActualHeight});
+            // Queue multiple real NavigationView selections before dispatching page changes.
+            // Only the final selection may replace the page or restore its scroll offset.
+            var navBefore=navigation.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0,0,navigation.ActualWidth,navigation.ActualHeight));
+            foreach(int index in new[]{2,0,1,0,2,1})navigation.SelectedItem=navigationItems[index];
+            await Settle();
+            if(selectedPage!=1||!ReferenceEquals(viewport.Content,pages[1]))failures.Add("Queued navigation did not show the last selected page");
+            var navAfter=navigation.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0,0,navigation.ActualWidth,navigation.ActualHeight));
+            if(navBefore!=navAfter)failures.Add("Navigation moved after page changes");
+            await CheckLayout($"{cycle}-{size.width}x{size.height}-rapid-navigation",folder,cases,failures,false);
         }
     }
     internal async Task Settle(){Root.UpdateLayout();await Task.Delay(60);Root.UpdateLayout();}

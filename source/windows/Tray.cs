@@ -81,7 +81,7 @@ public sealed partial class MainWindow
         AppWindow.TitleBar.BackgroundColor=background;AppWindow.TitleBar.ForegroundColor=text;
         AppWindow.TitleBar.ButtonBackgroundColor=background;AppWindow.TitleBar.ButtonForegroundColor=text;
         double scale=Desktop.GetDpiForWindow(Handle)/96.0;var work=Desktop.PrimaryScreen.WorkingArea;
-        int width=Math.Min((int)(880*scale),work.Width),height=Math.Min((int)(800*scale),work.Height);
+        int width=Math.Min((int)(880*scale),work.Width),height=Math.Min((int)(900*scale),work.Height);
         AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(work.Left+(work.Width-width)/2,work.Top+(work.Height-height)/2,width,height));
     }
     private nint WindowMessage(nint window,uint message,nuint wParam,nint lParam,nuint id,nuint reference) {
