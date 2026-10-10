@@ -82,7 +82,7 @@ internal sealed partial class MainWindow
             DrawToBitmap(bitmap, new Rectangle(0, 0, Width, Height));
             bitmap.Save(Path.Combine(output, name + ".png"));
         }
-        foreach (var size in new[] { new Size(800,600), new Size(1060,760), new Size(1400,900) })
+        foreach (var size in new[] { new Size(664,521), new Size(800,600), new Size(1060,760), new Size(1400,900) })
         {
             ClientSize = new Size(UiLayout.Px(this,size.Width),UiLayout.Px(this,size.Height));
             for (int cycle=0;cycle<3;cycle++)
@@ -99,6 +99,10 @@ internal sealed partial class MainWindow
                     if (cycle == 0) SaveScreenshot($"wizard-{stage}-{size.Width}x{size.Height}");
                 }
                 SelectPage(0);
+                side.SelectedIndex=1;
+                Check(!hero.MacLeft && inputHint.Text.Contains("правого края"), "Home instructions did not follow Mac on the right");
+                side.SelectedIndex=0;
+                Check(hero.MacLeft && inputHint.Text.Contains("левого края"), "Home instructions did not follow Mac on the left");
                 status.Text="Не удалось подключиться: проверьте Ethernet, разрешения Mac и настройки firewall. " + string.Join(" ",Enumerable.Repeat("Подробное сообщение соединения.",12));
                 Snapshot($"{size.Width}x{size.Height}-home-long-status-{cycle}");
                 if (cycle == 0) SaveScreenshot($"home-{size.Width}x{size.Height}");
@@ -106,6 +110,8 @@ internal sealed partial class MainWindow
         }
         ClientSize=new Size(UiLayout.Px(this,1060),UiLayout.Px(this,760)); SelectPage(1); setupStage=0; UpdateWizard(); Application.DoEvents();
         SaveScreenshot("setup");
+        ClientSize=new Size(UiLayout.Px(this,880),UiLayout.Px(this,760)); SelectPage(0);
+        status.Text="Не подключено"; Application.DoEvents(); SaveScreenshot("home-ready");
         return new LayoutReport(DeviceDpi,cases,failures);
     }
 }

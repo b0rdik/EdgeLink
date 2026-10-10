@@ -13,8 +13,14 @@ internal static class Program
     [STAThread] static void Main()
     {
         ApplicationConfiguration.Initialize();
+        Application.SetColorMode(SystemColorMode.Dark);
         if (Environment.GetCommandLineArgs().Contains("--layout-checks")) { Environment.ExitCode = LayoutChecks.Run(); return; }
         if (Environment.GetCommandLineArgs().Contains("--input-checks")) { Environment.ExitCode = InputChecks.Run(); return; }
+        if (Environment.GetCommandLineArgs().Contains("--tray-checks")) { Environment.ExitCode = TrayChecks.Run(); return; }
+        if (Environment.GetCommandLineArgs().Contains("--ui-preview")) {
+            using var preview = new MainWindow(layoutCheck: true) { Text = "EdgeLink — предпросмотр интерфейса" };
+            Application.Run(preview); return;
+        }
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "EdgeLink");
         SingleInstance.Run();
     }
@@ -30,18 +36,18 @@ internal sealed partial class MainWindow : Form
     private readonly ComboBox device = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 430 };
     private readonly ComboBox jitter = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
     private readonly ComboBox mouseRate = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 430 };
-    private readonly CheckBox swap = new() { Text = "Ctrl на ПК → Command на Mac", Checked = true, AutoSize = true };
-    private readonly CheckBox automatic = new() { Text = "Найти Mac и Ethernet автоматически", Checked = true, AutoSize = true };
-    private readonly CheckBox reconnect = new() { Text = "Запоминать Mac и подключаться автоматически", Checked = true, AutoSize = true };
-    private readonly Button importPairing = new() { Text = "Открыть файл подключения с Mac…", AutoSize = true };
-    private readonly Button firewall = new() { Text = "Разрешить соединение по Ethernet…", AutoSize = true };
+    private readonly CheckBox swap = new ThemedCheckBox() { Text = "Ctrl на ПК → Command на Mac", Checked = true, AutoSize = true };
+    private readonly CheckBox automatic = new ThemedCheckBox() { Text = "Найти Mac и Ethernet автоматически", Checked = true, AutoSize = true };
+    private readonly CheckBox reconnect = new ThemedCheckBox() { Text = "Запоминать Mac и подключаться автоматически", Checked = true, AutoSize = true };
+    private readonly Button importPairing = new ThemedButton() { Text = "Открыть файл подключения с Mac…", AutoSize = true };
+    private readonly Button firewall = new ThemedButton() { Text = "Разрешить соединение по Ethernet…", AutoSize = true };
     private readonly System.Windows.Forms.Timer reconnectTimer = new() { Interval = 10000 };
     private bool manuallyPaused;
     private readonly NumericUpDown gain = new() { Minimum = 0.1m, Maximum = 4, DecimalPlaces = 2, Increment = 0.1m, Value = 1, Width = 100 };
-    private readonly Button connect = new() { Text = "Подключить", AutoSize = true };
+    private readonly Button connect = new ThemedButton() { Text = "Подключить", AutoSize = true };
     private readonly Label status = new() { Text = "Не подключено", AutoSize = true, MaximumSize = new Size(610, 0) };
     private readonly Label stats = new() { AutoSize = true, MaximumSize = new Size(610, 0) };
-    private readonly Button updateButton = new() { Text = "Проверить обновления", AutoSize = true };
+    private readonly Button updateButton = new ThemedButton() { Text = "Проверить обновления", AutoSize = true };
     private readonly Label updateStatus = new() { AutoSize = true, MaximumSize = new Size(430, 0) };
     private readonly CancellationTokenSource updateCancellation = new();
     private ReleaseUpdate? availableUpdate;
@@ -58,7 +64,7 @@ internal sealed partial class MainWindow : Form
     private bool connecting;
     private readonly string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EdgeLink", "settings.json");
 
-    public MainWindow(bool layoutCheck = false)
+    public MainWindow(bool layoutCheck = false, bool trayCheck = false)
     {
         Text = $"EdgeLink {Updates.CurrentVersion}"; StartPosition = FormStartPosition.CenterScreen;
         using (var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("EdgeLink.App.ico")) {
@@ -75,12 +81,13 @@ internal sealed partial class MainWindow : Form
             { devices.Add((d.FriendlyName, d.ID)); d.Dispose(); }
         foreach (var d in devices) device.Items.Add(d.name); device.SelectedIndex = 0;
         BuildDashboard();
-        if (layoutCheck) { SelectPage(1); UpdateWizard(); SetFields(true); return; }
+        if (layoutCheck) { if (trayCheck) InitializeTray(); SelectPage(1); UpdateWizard(); SetFields(true); return; }
         LoadSettings();
         try { pairing.Text = CredentialStore.Load() ?? ""; } catch (Exception e) { status.Text = "Не удалось загрузить сопряжение: " + e.Message; }
         if (HasPairingKey()) { setupComplete = true; setupStage = 1; }
         SelectPage(setupComplete ? 0 : 1); UpdateWizard(); SetFields(true);
-        connect.Click += async (_, _) => { if (link == null) { manuallyPaused = false; await Connect(); } else { manuallyPaused = true; Disconnect(); } };
+        InitializeTray();
+        connect.Click += async (_, _) => await ToggleConnection();
         importPairing.Click += async (_, _) => { using var dialog = new OpenFileDialog { Filter = "Файл EdgeLink|*.edgelink|Все файлы|*.*" }; if (dialog.ShowDialog(this) == DialogResult.OK) await ImportPairing(dialog.FileName, setupComplete); };
         firewall.Click += async (_, _) => await ConfigureFirewall();
         automatic.CheckedChanged += (_, _) => { local.Enabled = remote.Enabled = !automatic.Checked && link == null; };
@@ -99,7 +106,7 @@ internal sealed partial class MainWindow : Form
             stats.Text = $"RTT: {link.RoundTripMs} мс · звук: {(bytes - lastBytes) * 8 / 1_000_000.0:F2} Мбит/с (IPv4)\nБуфер: {link.Audio.BufferedMs:F1} мс · запас: {link.Audio.TargetMs:F1} мс · прерывания: {link.Audio.Underruns} · пакеты: {packets}";
             lastBytes = bytes;
         };
-        refresh.Start(); FormClosing += (_, _) => { updateCancellation.Cancel(); reconnectTimer.Dispose(); Disconnect(); input?.Dispose(); refresh.Dispose(); SaveSettings(); };
+        refresh.Start(); FormClosed += (_, _) => { updateCancellation.Cancel(); reconnectTimer.Dispose(); Disconnect(); input?.Dispose(); refresh.Dispose(); SaveSettings(); };
     }
     private bool HasPairingKey() { try { return Convert.FromBase64String(pairing.Text.Trim()).Length == 32; } catch { return false; } }
     private async Task TryReconnect()
@@ -195,7 +202,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     }
     internal async Task AcceptInvocation(string? pairFile)
     {
-        if (IsDisposed) return; Show(); WindowState = FormWindowState.Normal; Activate();
+        if (IsDisposed) return; RestoreFromTray();
         if (pairFile != null) await ImportPairing(pairFile, setupComplete);
     }
     protected override void OnHandleCreated(EventArgs e)
@@ -250,7 +257,14 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     }
     private void SetFields(bool enabled)
     { foreach (var field in new Control[] { local, remote, pairing, side, screen, device, jitter, mouseRate, gain, swap, automatic, importPairing }) field.Enabled = enabled; local.Enabled = remote.Enabled = enabled && !automatic.Checked; }
-    private void UpdateStatus() { status.Text = link == null ? (lastError == "" ? "Не подключено" : lastError) : input?.Active == true ? "Управление: Mac · звук подключён" : "Управление: ПК · звук подключён"; UpdateWizard(); }
+    private void UpdateStatus()
+    {
+        status.Text = link == null ? (lastError == "" ? "Подключите Mac по Ethernet, чтобы начать работу." : lastError) : input?.Active == true ? "Мышь и клавиатура управляют Mac. Звук передаётся в наушники ПК." : "Mac и ПК соединены. Звук передаётся в наушники ПК.";
+        connect.BackColor = link == null ? Theme.Mint : Theme.Sidebar; connect.ForeColor = link == null ? Theme.Background : Theme.Text;
+        connect.FlatAppearance.BorderSize = link == null ? 0 : 1; connect.Invalidate();
+        if (link == null) stats.Text = "Нет активного соединения.";
+        UpdateWizard(); UpdateTrayStatus();
+    }
     private void SaveSettings()
     {
         try
