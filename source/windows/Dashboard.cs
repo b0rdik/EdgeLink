@@ -11,6 +11,8 @@ public sealed partial class MainWindow
 {
     internal readonly Grid Root=new() {RequestedTheme=ElementTheme.Dark};
     private readonly NavigationView navigation=new() {PaneDisplayMode=NavigationViewPaneDisplayMode.Top,IsSettingsVisible=false,IsBackButtonVisible=NavigationViewBackButtonVisible.Collapsed,IsPaneToggleButtonVisible=false};
+    private readonly Grid navigationStrip=new();
+    private readonly Border navigationIndicator=new() {Width=24,Height=3,CornerRadius=new CornerRadius(2),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Bottom,Margin=new Thickness(0,0,0,4),IsHitTestVisible=false,Opacity=0};
     private readonly ScrollViewer viewport=new() {HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalScrollMode=ScrollMode.Disabled,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
     private readonly List<StackPanel> pages=[];
     private readonly List<NavigationViewItem> navigationItems=[];
@@ -54,13 +56,21 @@ public sealed partial class MainWindow
         // Keep the navigation strip independent of page measurement and scrolling.
         // Let the native selection animation start before building the next page's layout.
         navigation.Resources["NavigationViewContentBackground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        // Replace the built-in stretching indicator with one fixed-width compositor visual.
+        navigation.Resources["NavigationViewSelectionIndicatorForeground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         navigation.SelectionChanged+=(_,e)=> {
             if(e.SelectedItem is not NavigationViewItem item)return;int index=(int)item.Tag;
+            BeginInvoke(()=> {if(navigation.SelectedItem is NavigationViewItem current&&(int)current.Tag==index)MoveNavigationIndicator(true);});
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,()=> {
                 if(!IsDisposed&&navigation.SelectedItem is NavigationViewItem current&&(int)current.Tag==index)SelectPage(index);
             });
         };
-        Grid.SetRow(navigation,1);Root.Children.Add(navigation);
+        navigationStrip.Children.Add(navigation);navigationStrip.Children.Add(navigationIndicator);
+        navigationIndicator.Background=Theme.Resource("AccentFillColorDefaultBrush");
+        Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.SetIsTranslationEnabled(navigationIndicator,true);
+        navigationStrip.Loaded+=(_,_)=>MoveNavigationIndicator(false);
+        navigationStrip.SizeChanged+=(_,_)=>MoveNavigationIndicator(false);
+        Grid.SetRow(navigationStrip,1);Root.Children.Add(navigationStrip);
         viewport.Margin=new Thickness(0,16,0,0);Grid.SetRow(viewport,2);Root.Children.Add(viewport);
         var footer=new Grid {BorderBrush=Theme.Resource("DividerStrokeColorDefaultBrush"),BorderThickness=new Thickness(0,1,0,0)};
         footer.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});footer.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
