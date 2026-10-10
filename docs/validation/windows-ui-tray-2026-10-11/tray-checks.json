@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "Native tray icon is registered",
+    "Window close hides the window and preserves the tray lifetime",
+    "Second invocation restores the same hidden window",
+    "Tray Open menu restores the hidden window",
+    "Tray open restores a minimized window",
+    "Updater close exits and removes the tray icon",
+    "Windows shutdown close is not intercepted (closing event only)",
+    "Explicit tray exit closes the window and removes the icon"
+  ]
+}
