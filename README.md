@@ -13,3 +13,5 @@ Experimental release. Builds and cross-language protocol tests pass; physical Wi
 Version 0.3.0 adds a redesigned Windows dashboard, seven-size native ICO, a four-step setup wizard on both platforms, single-instance pairing import, and explicit recovery for stale macOS TCC grants.
 
 ![Mac setup preview](docs/Preview-Mac-Setup.png)
+
+Version 0.3.1 fixes the Windows dashboard layout: viewport-constrained card widths, measured text heights, responsive fields, vertical scrolling and screen-sized startup bounds. Native layout regression checks are available with `EdgeLink.exe --layout-checks`; they require Windows and have not been executed on the macOS build host.

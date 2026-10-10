@@ -19,37 +19,42 @@ internal sealed partial class MainWindow
     private bool setupComplete;
     private int setupStage;
     private string macName = "Ваш Mac";
+    private TableLayoutPanel? dashboardRoot;
+    private Panel? dashboardBody;
 
     private void BuildDashboard()
     {
-        AutoScaleMode = AutoScaleMode.Dpi; Font=Theme.Font(); BackColor=Theme.Background; ForeColor=Theme.Text;
-        ClientSize = new Size(1060,760); MinimumSize=new Size(960,700);
+        SuspendLayout();
+        AutoScaleDimensions = new SizeF(96,96); AutoScaleMode = AutoScaleMode.Dpi;
+        Font=Theme.Font(); BackColor=Theme.Background; ForeColor=Theme.Text;
+        ClientSize = new Size(1060,760); MinimumSize=new Size(680,460);
         foreach (var c in new Control[] {local,remote,pairing,side,screen,device,jitter,mouseRate,gain,swap,automatic,reconnect,connect,importPairing,firewall,updateButton,status,stats,updateStatus}) Theme.Style(c);
         Theme.Primary(connect); Theme.Primary(importPairing); connect.Text="Подключить"; importPairing.Text="Добавить Mac…";
         automatic.Text="Находить Mac по Ethernet автоматически"; reconnect.Text="Восстанавливать соединение автоматически";
         status.Font=Theme.Font(14,FontStyle.Bold); status.ForeColor=Theme.Text; stats.ForeColor=Theme.Muted;
-        status.MaximumSize=new Size(680,0); stats.MaximumSize=new Size(680,0); updateStatus.MaximumSize=new Size(650,0);
+        status.MaximumSize=stats.MaximumSize=updateStatus.MaximumSize=Size.Empty;
         var root=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,Margin=new Padding(0),Padding=new Padding(0),BackColor=Theme.Background };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,190)); root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100)); root.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         var sidebar=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Padding=new Padding(18,28,18,18),BackColor=Theme.Sidebar,Margin=new Padding(0) };
         sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute,130)); sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute,165)); sidebar.RowStyles.Add(new RowStyle(SizeType.Percent,100)); sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute,92));
-        var brand=new FlowLayoutPanel { Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,BackColor=Theme.Sidebar };
+        var brand=new VerticalStackPanel { Dock=DockStyle.Fill,BackColor=Theme.Sidebar,Margin=Padding.Empty };
         using (var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("EdgeLink.Brand.png")) {
             if (stream != null) { using var original=Image.FromStream(stream); brand.Controls.Add(new PictureBox { Image=new Bitmap(original),Size=new Size(48,48),SizeMode=PictureBoxSizeMode.Zoom,Margin=new Padding(0,0,0,12) }); }
         }
-        brand.Controls.Add(Theme.Label("EdgeLink",20,true)); sidebar.Controls.Add(brand,0,0);
-        var nav=new FlowLayoutPanel { Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,BackColor=Theme.Sidebar };
+        brand.Controls.Add(Theme.Label("EdgeLink",16,true)); sidebar.Controls.Add(brand,0,0);
+        var nav=new VerticalStackPanel { Dock=DockStyle.Fill,BackColor=Theme.Sidebar,Margin=Padding.Empty };
         string[] names=["Главная","Подключение","Параметры"];
-        for(int i=0;i<names.Length;i++) { int index=i;var b=Theme.Button(names[i]);b.AutoSize=false;b.Size=new Size(154,44);b.TextAlign=ContentAlignment.MiddleLeft;b.BackColor=Theme.Sidebar;b.Click+=(_,_)=>SelectPage(index);navigation.Add(b);nav.Controls.Add(b); }
+        for(int i=0;i<names.Length;i++) { int index=i;var b=Theme.Button(names[i]);b.AutoSize=false;b.Size=new Size(154,44);b.Margin=new Padding(0,0,0,8);b.TextAlign=ContentAlignment.MiddleLeft;b.BackColor=Theme.Sidebar;b.Click+=(_,_)=>SelectPage(index);navigation.Add(b);nav.Controls.Add(b); }
         sidebar.Controls.Add(nav,0,1);
-        var footer=new FlowLayoutPanel { Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,BackColor=Theme.Sidebar };
+        var footer=new VerticalStackPanel { Dock=DockStyle.Fill,BackColor=Theme.Sidebar,Margin=Padding.Empty };
         footer.Controls.Add(Theme.Label("Вернуть курсор на ПК",9,muted:true));footer.Controls.Add(Theme.Label("Ctrl + Alt + Esc",10,true));footer.Controls.Add(Theme.Label("v"+Updates.CurrentVersion,9,muted:true));sidebar.Controls.Add(footer,0,3);
-        var body=new Panel { Dock=DockStyle.Fill,Padding=new Padding(28,24,28,16),BackColor=Theme.Background,Margin=new Padding(0) };
-        var header=new FlowLayoutPanel { Dock=DockStyle.Top,Height=98,FlowDirection=FlowDirection.TopDown,WrapContents=false,BackColor=Theme.Background };
-        header.Controls.Add(pageTitle);header.Controls.Add(pageHint);body.Controls.Add(content);body.Controls.Add(header);
+        var body=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=2,Padding=new Padding(28,24,28,16),BackColor=Theme.Background,Margin=new Padding(0) };
+        body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));body.RowStyles.Add(new RowStyle(SizeType.Absolute,100));body.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+        var header=new VerticalStackPanel { Dock=DockStyle.Fill,BackColor=Theme.Background,Margin=Padding.Empty };
+        header.Controls.Add(pageTitle);header.Controls.Add(pageHint);content.Margin=Padding.Empty;body.Controls.Add(header,0,0);body.Controls.Add(content,0,1);
         root.Controls.Add(sidebar,0,0);root.Controls.Add(body,1,0);Controls.Add(root);
+        dashboardRoot=root;dashboardBody=body;SizeChanged+=(_,_)=>UpdateViewport();Shown+=(_,_)=>FitWindow();
         var home=Page();
-        hero.Dock=DockStyle.Top;
         home.Controls.Add(Theme.Card("", "Переводите курсор через край — управление переключится само.",hero,status,Theme.Row(connect),stats));
         home.Controls.Add(Theme.Card("Звук Mac в наушниках ПК","Аудиовыход и буфер выбираются в разделе «Параметры». Звук Windows продолжает работать.",Theme.Label("Подключение идёт по отдельному Ethernet-кабелю.",10,muted:true)));
         var wizard=Page();
@@ -77,14 +82,12 @@ internal sealed partial class MainWindow
         automatic.CheckedChanged+=(_,_)=>{if(manualNetwork!=null)manualNetwork.Visible=!automatic.Checked;};
         side.SelectedIndexChanged+=(_,_)=>{hero.MacLeft=side.SelectedIndex==0;hero.Invalidate();};
         pairing.TextChanged+=(_,_)=>UpdateWizard();
-        SelectPage(0);UpdateWizard();
+        SelectPage(0);UpdateWizard();ResumeLayout(true);
     }
     private Button CreateWizardConnect() { var b=Theme.Button("Подключить и проверить",true);b.Click+=async (_,_)=>{manuallyPaused=false;await Connect();UpdateWizard();};return b; }
-    private FlowLayoutPanel Page()
+    private VerticalStackPanel Page()
     {
-        var panel=new FlowLayoutPanel { Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true,BackColor=Theme.Background,Margin=new Padding(0),Padding=new Padding(0,0,4,0) };
-        void SizeCards() {foreach(Control c in panel.Controls)c.Width=Math.Max(400,panel.ClientSize.Width-24);}
-        panel.SizeChanged+=(_,_)=>SizeCards();panel.ControlAdded+=(_,_)=>SizeCards();
+        var panel=new VerticalStackPanel { Dock=DockStyle.Fill,AutoScroll=true,BackColor=Theme.Background,Margin=Padding.Empty,Padding=new Padding(0,0,4,0) };
         content.Controls.Add(panel);pages.Add(panel);return panel;
     }
     private void SelectPage(int index)
@@ -95,20 +98,22 @@ internal sealed partial class MainWindow
         pageTitle.Text=new[]{"Ваш рабочий стол","Первое подключение","Параметры"}[index];
         pageHint.Text=new[]{"Состояние связи и быстрые действия.","Четыре коротких шага — и можно работать.","Настройте звук, экраны и поведение подключения."}[index];
         if(index==2) MoveAudioSettings(); else if(index==1) MoveWizardAudio();
+        if(index<pages.Count)pages[index].PerformLayout();
     }
     private void MoveAudioSettings()
     {
         if(pages.Count<3)return;var card=pages[2].Controls.Cast<Control>().First(c=>Equals(c.Tag,"audio-settings"));
-        var stack=(TableLayoutPanel)card.Controls[0];
+        var stack=card;
         foreach(var c in new Control[]{device,side,jitter}) if(c.Parent!=null) {var field=c.Parent;field.Controls.Remove(c);}
-        while(stack.Controls.Count>2) {var field=stack.Controls[2];stack.Controls.Remove(field);field.Dispose();} stack.RowCount=2;
-        foreach(var field in new[]{Theme.Field("Аудиовыход",device),Theme.Field("Mac расположен",side),Theme.Field("Буфер звука",jitter)}) {field.Anchor=AnchorStyles.Top|AnchorStyles.Left|AnchorStyles.Right;stack.Controls.Add(field,0,stack.RowCount++);}
+        while(stack.Controls.Count>2) {var field=stack.Controls[2];stack.Controls.Remove(field);field.Dispose();}
+        foreach(var field in new[]{Theme.Field("Аудиовыход",device),Theme.Field("Mac расположен",side),Theme.Field("Буфер звука",jitter)}) stack.Controls.Add(field);
+        stack.PerformLayout();
     }
     private void MoveWizardAudio()
     {
-        if(setupStages.Count<2)return;var stack=setupStages[1].Controls[0];
+        if(setupStages.Count<2)return;var stack=setupStages[1];
         // Fixed rows 2 and 3 are the reusable containers created for the wizard selectors.
-        for(int i=0;i<2;i++){Control c=i==0 ? device : side;var field=(TableLayoutPanel)stack.Controls[i+2];field.Controls.Add(c,1,0);}
+        for(int i=0;i<2;i++){Control c=i==0 ? device : side;var field=(FieldPanel)stack.Controls[i+2];field.Attach(c);}
     }
     private void UpdateWizard()
     {
@@ -120,5 +125,28 @@ internal sealed partial class MainWindow
         setupNext.Text=setupStage==3 ? "На главный экран" : "Продолжить";
         setupNext.Enabled=!connecting&&(setupStage==0 ? HasPairingKey() : setupStage==2 ? link!=null : true);
         hero.Connected=link!=null;hero.Active=input?.Active==true;hero.MacLeft=side.SelectedIndex==0;hero.Invalidate();
+        if(pages.Count>1)pages[1].PerformLayout();
+    }
+    private void UpdateViewport()
+    {
+        if(dashboardRoot==null||dashboardBody==null)return;
+        bool compact=ClientSize.Width<UiLayout.Px(this,820);
+        dashboardRoot.ColumnStyles[0].Width=UiLayout.Px(this,compact?148:190);
+        int horizontal=UiLayout.Px(this,compact?16:28);
+        dashboardBody.Padding=new Padding(horizontal,UiLayout.Px(this,24),horizontal,UiLayout.Px(this,16));
+        foreach(var page in pages)page.PerformLayout();
+    }
+    private void FitWindow()
+    {
+        var area=Screen.FromControl(this).WorkingArea;int gap=UiLayout.Px(this,16);
+        int maxWidth=Math.Max(1,area.Width-gap*2),maxHeight=Math.Max(1,area.Height-gap*2);
+        MinimumSize=new Size(Math.Min(UiLayout.Px(this,680),maxWidth),Math.Min(UiLayout.Px(this,460),maxHeight));
+        Size=new Size(Math.Min(Width,maxWidth),Math.Min(Height,maxHeight));
+        Location=new Point(area.Left+(area.Width-Width)/2,area.Top+(area.Height-Height)/2);
+        UpdateViewport();
+    }
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        base.OnDpiChanged(e);UpdateViewport();
     }
 }

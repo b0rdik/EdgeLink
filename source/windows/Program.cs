@@ -13,6 +13,7 @@ internal static class Program
     [STAThread] static void Main()
     {
         ApplicationConfiguration.Initialize();
+        if (Environment.GetCommandLineArgs().Contains("--layout-checks")) { Environment.ExitCode = LayoutChecks.Run(); return; }
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "EdgeLink");
         SingleInstance.Run();
     }
@@ -56,7 +57,7 @@ internal sealed partial class MainWindow : Form
     private bool connecting, timerResolution;
     private readonly string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EdgeLink", "settings.json");
 
-    public MainWindow()
+    public MainWindow(bool layoutCheck = false)
     {
         Text = $"EdgeLink {Updates.CurrentVersion}"; StartPosition = FormStartPosition.CenterScreen;
         using (var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("EdgeLink.App.ico")) {
@@ -68,11 +69,12 @@ internal sealed partial class MainWindow : Form
         jitter.Items.AddRange(["10 мс — минимальный буфер", "20 мс", "40 мс — устойчивее к сбоям"]); jitter.SelectedIndex = 0;
         mouseRate.Items.AddRange(["До 1000 Гц — минимальная задержка", "До 500 Гц", "До 250 Гц — меньше пакетов"]); mouseRate.SelectedIndex = 0;
         devices.Add(("Вывод Windows по умолчанию", ""));
-        using (var enumerator = new MMDeviceEnumerator())
+        if (!layoutCheck) using (var enumerator = new MMDeviceEnumerator())
             foreach (var d in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
             { devices.Add((d.FriendlyName, d.ID)); d.Dispose(); }
         foreach (var d in devices) device.Items.Add(d.name); device.SelectedIndex = 0;
         BuildDashboard();
+        if (layoutCheck) { SelectPage(1); UpdateWizard(); SetFields(true); return; }
         LoadSettings();
         try { pairing.Text = CredentialStore.Load() ?? ""; } catch (Exception e) { status.Text = "Не удалось загрузить сопряжение: " + e.Message; }
         if (HasPairingKey()) { setupComplete = true; setupStage = 1; }

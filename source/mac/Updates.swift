@@ -36,7 +36,7 @@ final class UpdateRedirects: NSObject, URLSessionTaskDelegate {
 enum Updates {
     static let repository = "b0rdik/EdgeLink"
     static let asset = "EdgeLink-macos-arm64.zip"
-    static var current: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0" }
+    static var current: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.1" }
     static func parse(_ data: Data, current: String) throws -> ReleaseUpdate? {
         struct Asset: Decodable { let name: String; let browser_download_url: String; let digest: String?; let size: Int64 }
         struct Release: Decodable { let tag_name: String; let draft: Bool; let prerelease: Bool; let assets: [Asset] }
