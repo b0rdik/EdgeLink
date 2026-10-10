@@ -130,13 +130,15 @@ internal sealed class Link : IDisposable
             catch (CryptographicException) { /* unauthenticated UDP is ignored */ }
         }
     }
-    private async Task Guard(Func<Task> work)
+    // Socket/audio/mouse continuations must never inherit the UI synchronization
+    // context from Connect. The UI receives errors through its dispatcher only.
+    private Task Guard(Func<Task> work)=>Task.Run(async ()=>
     {
         try { await work(); }
         catch (OperationCanceledException) { }
         catch (EndOfStreamException) { if (!stop.IsCancellationRequested) Fail("Соединение с Mac прервано. Проверьте, что EdgeLink на Mac продолжает работать."); }
         catch (Exception error) { if (!stop.IsCancellationRequested) Fail(error.Message); }
-    }
+    });
     private void Fail(string message) { Dispose(); Failed?.Invoke(message); }
     public void Dispose()
     {

@@ -164,6 +164,8 @@ try {
     }
 } finally { Directory.Delete(scratch, true); }
 
+if(args.Contains("--ui-loop-check"))Check(await UiLoopCheck.Run(),"encrypted UDP audio and mouse progress during a 500 ms UI stall");
+
 if (args.Contains("--integration"))
 {
     if (Environment.GetEnvironmentVariable("EDGELINK_SKIP_DISCOVERY_CHECK") != "1") using (var probe = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0))) {
