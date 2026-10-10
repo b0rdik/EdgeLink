@@ -1,7 +1,7 @@
 // Live OTA check: compile with Wire.swift + Updates.swift as main.swift. Never installs.
 import Foundation
 import AppKit
-let expected = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "0.2.0"
+let expected = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "0.3.0"
 Task {
     do {
         let client = Updates.session(); defer { client.finishTasksAndInvalidate() }

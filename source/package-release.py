@@ -41,6 +41,7 @@ for name, files in [('EdgeLink-macos-arm64.zip',[(p,p.relative_to(app.parent).as
             archive.write(path,entry)
         if 'windows' in name:
             archive.write(root/'README-RU.md','README-RU.md')
+            archive.write(root/'source/assets/EdgeLink.ico','EdgeLink.ico')
             for p in sorted((root/'licenses').glob('*.txt')): archive.write(p,'licenses/'+p.name)
     with zipfile.ZipFile(out/name) as archive: assert archive.testzip() is None
     print(name, (out/name).stat().st_size)

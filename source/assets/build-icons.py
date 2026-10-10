@@ -11,7 +11,7 @@ for logical in (16, 32, 128, 256, 512):
         suffix = '@2x' if scale == 2 else ''
         (iconset / f'icon_{logical}x{logical}{suffix}.png').write_bytes(source.read_bytes())
 subprocess.run(['iconutil', '-c', 'icns', str(iconset), '-o', str(assets / 'EdgeLink.icns')], check=True)
-images = [(size, (assets / f'icon-{size}.png').read_bytes()) for size in (16, 32, 48, 64, 128, 256)]
+images = [(size, (assets / f'icon-{size}.png').read_bytes()) for size in (16, 24, 32, 48, 64, 128, 256)]
 offset = 6 + 16 * len(images)
 entries, blobs = [], []
 for size, data in images:

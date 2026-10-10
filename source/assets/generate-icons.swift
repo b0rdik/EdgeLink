@@ -17,22 +17,22 @@ func icon(_ size: Int) -> Data {
     func monitor(_ rect: NSRect, _ color: NSColor) {
         let path = NSBezierPath(roundedRect: rect, xRadius: 30, yRadius: 30)
         NSColor.white.withAlphaComponent(0.07).setFill(); path.fill()
-        color.setStroke(); path.lineWidth = 24; path.stroke()
+        color.setStroke(); path.lineWidth = size <= 32 ? 60 : 24; path.stroke()
         let stand = NSBezierPath(); stand.move(to: NSPoint(x: rect.midX, y: rect.minY)); stand.line(to: NSPoint(x: rect.midX, y: rect.minY - 55))
-        stand.move(to: NSPoint(x: rect.midX - 64, y: rect.minY - 55)); stand.line(to: NSPoint(x: rect.midX + 64, y: rect.minY - 55)); stand.lineWidth = 24; stand.lineCapStyle = .round; stand.stroke()
+        stand.move(to: NSPoint(x: rect.midX - 64, y: rect.minY - 55)); stand.line(to: NSPoint(x: rect.midX + 64, y: rect.minY - 55)); stand.lineWidth = size <= 32 ? 60 : 24; stand.lineCapStyle = .round; stand.stroke()
     }
     monitor(NSRect(x: 144, y: 370, width: 300, height: 285), NSColor.white.withAlphaComponent(0.96))
     monitor(NSRect(x: 580, y: 370, width: 300, height: 285), NSColor(calibratedRed: 0.36, green: 0.98, blue: 0.88, alpha: 1))
-    let arrow = NSBezierPath(); arrow.lineWidth = 25; arrow.lineCapStyle = .round; arrow.lineJoinStyle = .round
+    let arrow = NSBezierPath(); arrow.lineWidth = size <= 32 ? 48 : 25; arrow.lineCapStyle = .round; arrow.lineJoinStyle = .round
     NSColor.white.setStroke(); arrow.move(to: NSPoint(x: 412, y: 744)); arrow.line(to: NSPoint(x: 612, y: 744))
     arrow.move(to: NSPoint(x: 570, y: 786)); arrow.line(to: NSPoint(x: 612, y: 744)); arrow.line(to: NSPoint(x: 570, y: 702)); arrow.stroke()
-    let back = NSBezierPath(); back.lineWidth = 25; back.lineCapStyle = .round; back.lineJoinStyle = .round
+    let back = NSBezierPath(); back.lineWidth = size <= 32 ? 48 : 25; back.lineCapStyle = .round; back.lineJoinStyle = .round
     NSColor(calibratedRed: 0.36, green: 0.98, blue: 0.88, alpha: 1).setStroke()
     back.move(to: NSPoint(x: 612, y: 228)); back.line(to: NSPoint(x: 412, y: 228))
     back.move(to: NSPoint(x: 454, y: 270)); back.line(to: NSPoint(x: 412, y: 228)); back.line(to: NSPoint(x: 454, y: 186)); back.stroke()
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])!
 }
-for size in [16, 32, 48, 64, 128, 256, 512, 1024] {
+for size in [16, 24, 32, 48, 64, 128, 256, 512, 1024] {
     try icon(size).write(to: output.appendingPathComponent("icon-\(size).png"))
 }

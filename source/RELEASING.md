@@ -16,4 +16,6 @@ gh release edit v0.3.0 --repo b0rdik/EdgeLink --draft=false --latest
 
 Замените пример версии реальным `VERSION`. Это ручная публикация сопровождающего; пользователи получают релиз через встроенное OTA. GitHub Actions не настроен. Никогда не добавляйте `.edgelink`, секреты Keychain/Credential Manager, токены или личные файлы настроек в Git/релиз.
 
-macOS сборка по умолчанию ad-hoc. Для стабильного доверия Gatekeeper/TCC замените этап подписи на Developer ID, hardened runtime и notarization до упаковки; сохраняйте bundle ID. Иконки генерируются штатным AppKit, исходники находятся в `source/assets/`.
+macOS сборка предпочитает доступный Developer ID / Apple Development сертификат. Можно явно выбрать его через `EDGELINK_SIGN_IDENTITY`; без сертификата используется ad-hoc. Для стабильного доверия Gatekeeper/TCC замените этап подписи на Developer ID, hardened runtime и notarization до упаковки; сохраняйте bundle ID. Иконки генерируются штатным AppKit, исходники находятся в `source/assets/`.
+
+Сохраняйте signing identity между релизами для сохранения TCC. Переход с ad-hoc требует однократного восстановления разрешений через мастер. Apple Development позволяет стабильную идентичность тестовой сборки, но не заменяет Developer ID и notarization для распространения.

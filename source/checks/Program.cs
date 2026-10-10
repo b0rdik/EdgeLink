@@ -119,7 +119,7 @@ if (args.Contains("--integration"))
 }
 if (args.Contains("--release")) {
     var update = await Updates.Check(CancellationToken.None);
-    Check(update?.Version == "0.2.0", "GitHub live Windows release metadata / version / digest");
+    Check(update?.Version == "0.3.0", "GitHub live Windows release metadata / version / digest");
     try {
         string staged = await Updates.Stage(update!, CancellationToken.None);
         try { Check(File.Exists(staged), "Windows OTA downloads / verifies checksum / extracts actual PE x64 / native version"); }

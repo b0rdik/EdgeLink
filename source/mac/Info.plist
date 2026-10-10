@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleExecutable</key><string>EdgeLink</string>
+  <key>CFBundleIdentifier</key><string>local.edgelink.mac</string>
+  <key>CFBundleName</key><string>EdgeLink</string>
+  <key>CFBundleIconFile</key><string>EdgeLink.icns</string>
+  <key>CFBundleDocumentTypes</key><array><dict><key>CFBundleTypeName</key><string>EdgeLink Pairing</string><key>CFBundleTypeExtensions</key><array><string>edgelink</string></array><key>CFBundleTypeRole</key><string>None</string></dict></array>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>LSMinimumSystemVersion</key><string>15.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSAudioCaptureUsageDescription</key><string>EdgeLink передаёт системный звук Mac на ваш ПК по отдельному Ethernet-соединению.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>EdgeLink принимает ввод и передаёт звук между вашим ПК и Mac.</string>
+</dict></plist>
