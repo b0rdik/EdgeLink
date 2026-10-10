@@ -1,0 +1,11 @@
+Mac/
+Windows/
+releases/
+work/
+**/bin/
+**/obj/
+**/artifacts/
+.DS_Store
+*.edgelink
+settings.json
+SHA256.txt

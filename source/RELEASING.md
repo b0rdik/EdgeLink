@@ -1,0 +1,19 @@
+# Публикация обновления
+
+1. Измените корневой `VERSION` (стабильный `major.minor.patch`) и `<Version>` в `source/windows/EdgeLink.csproj`.
+2. Соберите Mac: `bash source/build-mac.sh`. Соберите Windows на Windows: `powershell -ExecutionPolicy Bypass -File source/build-windows.ps1`. Передайте папку `Windows/` на Mac для упаковки. .NET SDK также может кросс-компилировать Windows из macOS.
+3. Выполните `bash source/run-checks.sh` на Mac с .NET SDK. Проверьте реальные ввод и звук на обоих компьютерах. Скопируйте исходники в Git, закоммитьте и отправьте изменения.
+4. На Mac запустите `python3 source/package-release.py`. Скрипт проверяет версии, PE x64 и подпись Mac, создаёт два архивных файла в `releases/`.
+5. Создайте draft GitHub Release для тега `v<VERSION>` в `b0rdik/EdgeLink`, прикрепите **оба** ZIP и `SHA256.txt`, затем опубликуйте его как стабильный релиз. Имена файлов обязательны: `EdgeLink-macos-arm64.zip`, `EdgeLink-windows-x64.zip`.
+6. Проверьте API `repos/b0rdik/EdgeLink/releases/latest`: оба assets должны содержать `digest: sha256:<hash>`, совпадающий с локальным SHA256. Приложения не принимают архив без digest.
+
+Пример с GitHub CLI после входа в аккаунт с доступом к репозиторию:
+
+```sh
+gh release create v0.3.0 releases/EdgeLink-macos-arm64.zip releases/EdgeLink-windows-x64.zip releases/SHA256.txt --repo b0rdik/EdgeLink --draft --title 'EdgeLink 0.3.0' --notes-file RELEASE-NOTES.md
+gh release edit v0.3.0 --repo b0rdik/EdgeLink --draft=false --latest
+```
+
+Замените пример версии реальным `VERSION`. Это ручная публикация сопровождающего; пользователи получают релиз через встроенное OTA. GitHub Actions не настроен. Никогда не добавляйте `.edgelink`, секреты Keychain/Credential Manager, токены или личные файлы настроек в Git/релиз.
+
+macOS сборка по умолчанию ad-hoc. Для стабильного доверия Gatekeeper/TCC замените этап подписи на Developer ID, hardened runtime и notarization до упаковки; сохраняйте bundle ID. Иконки генерируются штатным AppKit, исходники находятся в `source/assets/`.

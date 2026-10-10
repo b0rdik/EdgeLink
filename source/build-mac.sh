@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
+PACKAGE_DIR="$(cd "$SOURCE_DIR/.." && pwd)"
+APP_DIR="$PACKAGE_DIR/Mac/EdgeLink.app"
+VERSION="$(tr -d '\r\n' < "$PACKAGE_DIR/VERSION")"
+mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
+# Swift top-level app entry needs to be named main.swift.
+SCRATCH_DIR="$(mktemp -d)"
+trap 'rm -rf "$SCRATCH_DIR"' EXIT
+cp "$SOURCE_DIR/mac/App.swift" "$SCRATCH_DIR/main.swift"
+swiftc -swift-version 5 -O -target arm64-apple-macos15.0 \
+  "$SOURCE_DIR/mac/Wire.swift" "$SOURCE_DIR/mac/Input.swift" "$SOURCE_DIR/mac/Link.swift" "$SOURCE_DIR/mac/Audio.swift" "$SOURCE_DIR/mac/Updates.swift" "$SOURCE_DIR/mac/Discovery.swift" "$SOURCE_DIR/mac/Dashboard.swift" "$SCRATCH_DIR/main.swift" \
+  -o "$APP_DIR/Contents/MacOS/EdgeLink"
+cp "$SOURCE_DIR/mac/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$SOURCE_DIR/assets/EdgeLink.icns" "$APP_DIR/Contents/Resources/EdgeLink.icns"
+cp "$SOURCE_DIR/assets/icon-128.png" "$APP_DIR/Contents/Resources/AppIcon.png"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_DIR/Contents/Info.plist"
+codesign --force --sign - "$APP_DIR"
+printf 'Built %s\n' "$APP_DIR"
