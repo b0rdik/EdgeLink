@@ -42,7 +42,7 @@ internal sealed partial class MainWindow
             {
                 if (!child.Visible) continue;
                 string name = scenario + "/" + child.GetType().Name;
-                Check(child.Left >= 0 && child.Right <= parent.ClientSize.Width, name + ": horizontal clipping");
+                Check(child.Left >= 0 && child.Right <= parent.ClientSize.Width, name + $": horizontal clipping (bounds={child.Bounds}, parent client={parent.ClientSize})");
                 if (parent is VerticalStackPanel stack && stack.AutoScroll)
                     Check(child.Bottom - stack.AutoScrollPosition.Y <= stack.AutoScrollMinSize.Height, name + ": unreachable by scrolling");
                 else Check(child.Top >= 0 && child.Bottom <= parent.ClientSize.Height, name + ": vertical clipping");
@@ -60,7 +60,27 @@ internal sealed partial class MainWindow
         void Snapshot(string scenario)
         {
             PerformLayout(); foreach (var page in pages) if (page.Visible) page.PerformLayout();
-            Application.DoEvents(); Validate(this, scenario); cases++;
+            Application.DoEvents(); Validate(this, scenario);
+            foreach (var button in navigation)
+                Check(button.Width >= TextRenderer.MeasureText(button.Text, button.Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix).Width + button.Padding.Horizontal,
+                    scenario + ": navigation button text is clipped: " + button.Text);
+            cases++;
+        }
+        void VerifySettingsScroll(string scenario)
+        {
+            var settings = pages[2];
+            settings.AutoScrollPosition = new Point(0, int.MaxValue); Application.DoEvents();
+            var last = settings.Controls.Cast<Control>().Last(c => c.Visible);
+            Check(last.Bottom <= settings.ClientSize.Height, scenario + $": last settings card cannot be reached by scrolling (bounds={last.Bounds}, client={settings.ClientSize}, scroll={settings.AutoScrollPosition}, extent={settings.AutoScrollMinSize})");
+            Check(!settings.HorizontalScroll.Visible, scenario + ": unexpected horizontal scrollbar");
+            cases++;
+            settings.AutoScrollPosition = Point.Empty; Application.DoEvents();
+        }
+        void SaveScreenshot(string name)
+        {
+            using var bitmap = new Bitmap(Width, Height);
+            DrawToBitmap(bitmap, new Rectangle(0, 0, Width, Height));
+            bitmap.Save(Path.Combine(output, name + ".png"));
         }
         foreach (var size in new[] { new Size(800,600), new Size(1060,760), new Size(1400,900) })
         {
@@ -70,20 +90,22 @@ internal sealed partial class MainWindow
                 SelectPage(2); automatic.Checked=false;
                 Check(device.Parent is FieldPanel && jitter.Parent is FieldPanel, "Settings audio fields were disposed during navigation");
                 Snapshot($"{size.Width}x{size.Height}-settings-{cycle}");
+                VerifySettingsScroll($"{size.Width}x{size.Height}-settings-{cycle}");
+                if (cycle == 0) SaveScreenshot($"settings-{size.Width}x{size.Height}");
                 SelectPage(1);
                 Check(device.Parent==setupStages[1].Controls[2] && side.Parent==setupStages[1].Controls[3], "Wizard selectors failed to return from settings");
-                for(int stage=0;stage<4;stage++) { setupStage=stage; UpdateWizard(); Snapshot($"{size.Width}x{size.Height}-wizard-{stage}-{cycle}"); }
+                for(int stage=0;stage<4;stage++) {
+                    setupStage=stage; UpdateWizard(); Snapshot($"{size.Width}x{size.Height}-wizard-{stage}-{cycle}");
+                    if (cycle == 0) SaveScreenshot($"wizard-{stage}-{size.Width}x{size.Height}");
+                }
                 SelectPage(0);
                 status.Text="Не удалось подключиться: проверьте Ethernet, разрешения Mac и настройки firewall. " + string.Join(" ",Enumerable.Repeat("Подробное сообщение соединения.",12));
                 Snapshot($"{size.Width}x{size.Height}-home-long-status-{cycle}");
+                if (cycle == 0) SaveScreenshot($"home-{size.Width}x{size.Height}");
             }
         }
         ClientSize=new Size(UiLayout.Px(this,1060),UiLayout.Px(this,760)); SelectPage(1); setupStage=0; UpdateWizard(); Application.DoEvents();
-        using (var bitmap=new Bitmap(Width,Height)) { DrawToBitmap(bitmap,new Rectangle(0,0,Width,Height)); bitmap.Save(Path.Combine(output,"setup.png")); }
-        SelectPage(2);Application.DoEvents();
-        var settings=pages[2]; settings.AutoScrollPosition=new Point(0,int.MaxValue);Application.DoEvents();
-        var last=settings.Controls.Cast<Control>().Last(c=>c.Visible);
-        Check(last.Bottom<=settings.ClientSize.Height, "The last settings card cannot be reached by scrolling");
+        SaveScreenshot("setup");
         return new LayoutReport(DeviceDpi,cases,failures);
     }
 }

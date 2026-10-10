@@ -36,6 +36,7 @@ internal sealed partial class MainWindow
         var root=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,Margin=new Padding(0),Padding=new Padding(0),BackColor=Theme.Background };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,190)); root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100)); root.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         var sidebar=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Padding=new Padding(18,28,18,18),BackColor=Theme.Sidebar,Margin=new Padding(0) };
+        sidebar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute,130)); sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute,165)); sidebar.RowStyles.Add(new RowStyle(SizeType.Percent,100)); sidebar.RowStyles.Add(new RowStyle(SizeType.Absolute,92));
         var brand=new VerticalStackPanel { Dock=DockStyle.Fill,BackColor=Theme.Sidebar,Margin=Padding.Empty };
         using (var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("EdgeLink.Brand.png")) {
@@ -131,7 +132,7 @@ internal sealed partial class MainWindow
     {
         if(dashboardRoot==null||dashboardBody==null)return;
         bool compact=ClientSize.Width<UiLayout.Px(this,820);
-        dashboardRoot.ColumnStyles[0].Width=UiLayout.Px(this,compact?148:190);
+        dashboardRoot.ColumnStyles[0].Width=UiLayout.Px(this,compact?168:190);
         int horizontal=UiLayout.Px(this,compact?16:28);
         dashboardBody.Padding=new Padding(horizontal,UiLayout.Px(this,24),horizontal,UiLayout.Px(this,16));
         foreach(var page in pages)page.PerformLayout();

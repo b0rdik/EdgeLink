@@ -70,7 +70,13 @@ internal class VerticalStackPanel : Panel
                 rows.Add((child, childWidth, height));
                 total += height + child.Margin.Vertical;
             }
-            if (AutoScroll) AutoScrollMinSize = new Size(0, total);
+            if (AutoScroll && AutoScrollMinSize != new Size(0, total))
+            {
+                AutoScrollMinSize = new Size(0, total);
+                // Setting the extent requests a nested layout, which our guard skips.
+                // Let ScrollableControl update its range before applying the offset.
+                base.OnLayout(e);
+            }
             int y = Padding.Top + (AutoScroll ? AutoScrollPosition.Y : 0);
             foreach (var row in rows)
             {
