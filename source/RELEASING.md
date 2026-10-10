@@ -21,3 +21,5 @@ macOS сборка предпочитает доступный Developer ID / Ap
 Сохраняйте signing identity между релизами для сохранения TCC. Переход с ad-hoc требует однократного восстановления разрешений через мастер. Apple Development позволяет стабильную идентичность тестовой сборки, но не заменяет Developer ID и notarization для распространения.
 
 On Windows, run `EdgeLink.exe --layout-checks` at the display scales you support. This creates `%TEMP%/EdgeLink-layout-checks/report.json` and `setup.png`, then exits with code 0 only if the layout checks pass. The check mode skips saved configuration, pairing credentials, input hooks, network and audio. Compile-only validation is not a substitute for this native run.
+
+On Windows, `EdgeLink.exe --input-checks` tests the dedicated input thread, inactive Raw Input registration and responsiveness during a 300 ms UI stall. It writes `%TEMP%/EdgeLink-input-checks.json`; no pairing, network, audio or synthetic input is used. Native checks must run on Windows. If an installed Mac server must stay connected during cross-language tests, set `EDGELINK_SKIP_DISCOVERY_CHECK=1` to skip the UDP discovery tests only.

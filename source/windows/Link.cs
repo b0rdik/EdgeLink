@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading.Channels;
+using System.Diagnostics;
 
 namespace EdgeLink;
 
@@ -13,9 +14,7 @@ internal sealed class Link : IDisposable
     private readonly TcpClient tcp = new(AddressFamily.InterNetwork);
     private UdpClient? audioSocket, mouseSocket;
     private byte[] key = [];
-    private readonly object moveGate = new();
-    private (uint epoch, ulong sequence, double x, double y)? pendingMove;
-    private ulong moveSequence;
+    private readonly MouseMailbox moves = new();
     private long lastPong = Environment.TickCount64;
     private readonly int mouseIntervalMs;
     public AudioBuffer Audio { get; }
@@ -24,7 +23,7 @@ internal sealed class Link : IDisposable
     public long AudioBytes, AudioPackets;
     public int RoundTripMs;
     public bool IsAlive => !stop.IsCancellationRequested;
-    public ulong PositionSequence { get { lock (moveGate) return moveSequence; } }
+    public ulong PositionSequence => moves.Sequence;
     public event Action<string>? Failed;
     public Link(int jitterMs, int mouseIntervalMs = 1) { Audio = new(jitterMs); this.mouseIntervalMs = mouseIntervalMs; }
 
@@ -70,7 +69,7 @@ internal sealed class Link : IDisposable
         if (commands.Writer.TryWrite(command)) return true;
         Fail("Переполнена очередь ввода. Управление возвращено на ПК."); return false;
     }
-    public void Move(uint epoch, double x, double y) { lock (moveGate) pendingMove = (epoch, ++moveSequence, x, y); }
+    public void Move(uint epoch, double x, double y) { if (!stop.IsCancellationRequested) moves.Publish(epoch, x, y); }
     private async Task WriteLoop(Stream stream)
     {
         await foreach (var message in commands.Reader.ReadAllAsync(stop.Token))
@@ -104,13 +103,16 @@ internal sealed class Link : IDisposable
     }
     private async Task MouseLoop()
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(mouseIntervalMs));
-        while (await timer.WaitForNextTickAsync(stop.Token))
+        long lastSent = 0;
+        while (!stop.IsCancellationRequested)
         {
-            (uint epoch, ulong sequence, double x, double y)? move;
-            lock (moveGate) { move = pendingMove; pendingMove = null; }
-            if (move is { } m)
-                await mouseSocket!.SendAsync(Wire.Seal(Wire.Move(m.epoch, m.sequence, m.x, m.y), key), stop.Token);
+            await moves.Wait(stop.Token);
+            double remaining = mouseIntervalMs - Stopwatch.GetElapsedTime(lastSent).TotalMilliseconds;
+            if (remaining > 0) await Task.Delay((int)Math.Ceiling(remaining), stop.Token);
+            if (moves.TakeLatest() is { } m) {
+                await mouseSocket!.SendAsync(Wire.Seal(Wire.Move(m.Epoch, m.Sequence, m.X, m.Y), key), stop.Token);
+                lastSent = Stopwatch.GetTimestamp();
+            }
         }
     }
     private async Task AudioLoop(IPAddress remote)

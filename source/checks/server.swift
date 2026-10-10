@@ -74,7 +74,8 @@ check(!UpdateRedirects.allowed(URL(string: "https://github.com.evil.invalid/x")!
 var badRelease = release; badRelease["assets"] = [["name": Updates.asset, "browser_download_url": "https://evil.invalid/app.zip", "digest": "sha256:" + String(repeating: "a", count: 64), "size": 1234]]
 rejects("Mac rejects altered release URL") { _ = try Updates.parse(Wire.json(badRelease), current: "0.1.0") }
 if let path = ProcessInfo.processInfo.environment["INSTALLER_SCRIPT_EXPORT"] { try Updates.installerScript.write(toFile: path, atomically: true, encoding: .utf8) }
-let discovery = DiscoveryServer(); try discovery.start(ip: "127.0.0.1", key: master)
+let checkDiscovery = ProcessInfo.processInfo.environment["EDGELINK_SKIP_DISCOVERY_CHECK"] != "1"
+let discovery = DiscoveryServer(); if checkDiscovery { try discovery.start(ip: "127.0.0.1", key: master) }
 let input = InputReceiver()
 let server = LinkServer(input: input)
 server.audioBatchFrames = { 1024 }
@@ -97,7 +98,7 @@ print("READY"); fflush(stdout)
 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
     server.stop(); discovery.stop()
     do {
-        try discovery.start(ip: "127.0.0.1", key: master); discovery.stop()
+        if checkDiscovery { try discovery.start(ip: "127.0.0.1", key: master); discovery.stop() }
         try server.start(ip: "127.0.0.1", peerIP: "127.0.0.1", master: master, displayWidth: 1920, displayHeight: 1080)
         print("PASS: server stop / immediate restart releases ports")
         server.stop()

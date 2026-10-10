@@ -26,6 +26,51 @@ var move = Wire.Move(7, 42, 123.25, 321.5);
 Check(move.Length == 29 && BinaryPrimitives.ReadUInt32LittleEndian(move.AsSpan(1)) == 7 &&
     BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(move.AsSpan(13))) == 123.25, "mouse wire format");
 
+var mailbox = new MouseMailbox();
+Check(System.Runtime.InteropServices.Marshal.SizeOf<Native.MouseData>() == 32 &&
+    System.Runtime.InteropServices.Marshal.OffsetOf<Native.MouseData>(nameof(Native.MouseData.Extra)).ToInt32() == 24 &&
+    System.Runtime.InteropServices.Marshal.SizeOf<Native.KeyboardData>() == 24 &&
+    System.Runtime.InteropServices.Marshal.SizeOf<Native.RawHeader>() == 24 &&
+    System.Runtime.InteropServices.Marshal.SizeOf<Native.RawDevice>() == 16,
+    "64-bit Windows input structure ABI used by allocation-free callbacks");
+using (var idleStop = new CancellationTokenSource()) {
+    Task idle = mailbox.Wait(idleStop.Token).AsTask();
+    await Task.Delay(20);
+    Check(!idle.IsCompleted, "idle mouse sender sleeps until actual movement");
+    idleStop.Cancel();
+    try { await idle; } catch (OperationCanceledException) { }
+    Check(idle.IsCanceled, "disconnect cancels sleeping mouse sender");
+}
+// Warm channel/monitor paths before measuring the synchronous publishing loop.
+for (int i = 0; i < 1000; i++) mailbox.Publish(1, 0, 0);
+await mailbox.Wait(CancellationToken.None); mailbox.TakeLatest();
+long beforeMoves = GC.GetAllocatedBytesForCurrentThread();
+for (int i = 0; i < 100000; i++) mailbox.Publish(9, i, -i);
+long moveAllocations = GC.GetAllocatedBytesForCurrentThread() - beforeMoves;
+Console.WriteLine($"Mouse publishing allocation measurement: {moveAllocations} bytes for 100000 movements");
+await mailbox.Wait(CancellationToken.None);
+var latestMove = mailbox.TakeLatest();
+Check(latestMove is { Epoch: 9, Sequence: 101000, X: 99999, Y: -99999 }, "100000 high-rate movements coalesce to the latest position and sequence");
+Check(moveAllocations < 4096, "high-rate movement publishing avoids per-event allocations");
+Check(mailbox.TakeLatest() == null, "mouse mailbox retains no backlog after consumption");
+var concurrentMoves = new MouseMailbox();
+using (var concurrentStop = new CancellationTokenSource(TimeSpan.FromSeconds(3))) {
+    var producer = Task.Run(() => {
+        for (int i = 1; i <= 100000; i++) { concurrentMoves.Publish(10, i, -i); if (i % 100 == 0) Thread.Yield(); }
+    });
+    ulong observed = 0; bool coherent = true;
+    while (observed < 100000) {
+        await concurrentMoves.Wait(concurrentStop.Token);
+        if (concurrentMoves.TakeLatest() is {} position) {
+            coherent &= position.Sequence > observed && position.X == position.Sequence && position.Y == -position.X;
+            observed = position.Sequence;
+        }
+    }
+    await producer;
+    Check(coherent, "concurrent mouse publication stays ordered and coherent");
+    Check(observed == 100000 && concurrentMoves.TakeLatest() == null, "concurrent mouse reader reaches final position without losing wake-ups");
+}
+
 byte[] Packet(ulong frame, short amplitude = 1000)
 {
     byte[] p = new byte[977]; p[0] = 2;
@@ -121,7 +166,7 @@ try {
 
 if (args.Contains("--integration"))
 {
-    using (var probe = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0))) {
+    if (Environment.GetEnvironmentVariable("EDGELINK_SKIP_DISCOVERY_CHECK") != "1") using (var probe = new System.Net.Sockets.UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0))) {
         string nonce = new string('a', 32);
         var request = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { type = "edgelink-discover", nonce });
         await probe.SendAsync(request, new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 48794));

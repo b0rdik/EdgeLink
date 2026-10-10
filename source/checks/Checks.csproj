@@ -3,6 +3,8 @@
   <ItemGroup>
     <Compile Include="../windows/Wire.cs" Link="Wire.cs" />
     <Compile Include="../windows/Link.cs" Link="Link.cs" />
+    <Compile Include="../windows/MouseMailbox.cs" Link="MouseMailbox.cs" />
+    <Compile Include="../windows/Native.cs" Link="Native.cs" />
     <Compile Include="../windows/Audio.cs" Link="Audio.cs" />
     <Compile Include="../windows/Updates.cs" Link="Updates.cs" />
     <PackageReference Include="NAudio.Wasapi" Version="2.4.0" />

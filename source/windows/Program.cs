@@ -14,6 +14,7 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
         if (Environment.GetCommandLineArgs().Contains("--layout-checks")) { Environment.ExitCode = LayoutChecks.Run(); return; }
+        if (Environment.GetCommandLineArgs().Contains("--input-checks")) { Environment.ExitCode = InputChecks.Run(); return; }
         Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "EdgeLink");
         SingleInstance.Run();
     }
@@ -54,7 +55,7 @@ internal sealed partial class MainWindow : Form
     private MMDevice? endpoint;
     private long lastBytes;
     private string lastError = "";
-    private bool connecting, timerResolution;
+    private bool connecting;
     private readonly string configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EdgeLink", "settings.json");
 
     public MainWindow(bool layoutCheck = false)
@@ -85,7 +86,7 @@ internal sealed partial class MainWindow : Form
         automatic.CheckedChanged += (_, _) => { local.Enabled = remote.Enabled = !automatic.Checked && link == null; };
         updateButton.Click += async (_, _) => { if (availableUpdate is { } update) await OfferUpdate(update); else await CheckUpdates(true); };
         Shown += async (_, _) => {
-            try { input = new Input(this, () => link); input.Changed += UpdateStatus; } catch (Exception e) { status.Text = e.Message; connect.Enabled = false; }
+            try { input = new Input(this); input.Changed += UpdateStatus; } catch (Exception e) { status.Text = e.Message; connect.Enabled = false; }
             RegisterPairingType(); _ = CheckUpdates(false);
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length >= 3 && args[1] == "--pair") await ImportPairing(args[2], setupComplete); else await TryReconnect();
@@ -202,11 +203,6 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
         base.OnHandleCreated(e); int dark = 1;
         _ = SingleInstance.DwmSetWindowAttribute(Handle,20,ref dark,sizeof(int));
     }
-    protected override void WndProc(ref Message message)
-    {
-        if (message.Msg == 0xFF) input?.Raw(message.LParam);
-        base.WndProc(ref message);
-    }
     private async Task Connect()
     {
         if (connecting || input == null || installing || IsDisposed) return;
@@ -238,10 +234,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             if (!candidate.IsAlive) throw new IOException("Соединение потеряно во время запуска.");
             link = candidate;
             connectingLink = null;
-            input.Side = side.SelectedIndex == 0 ? "left" : "right";
-            input.SwapControlCommand = swap.Checked; input.Gain = (double)gain.Value;
-            input.SetScreen(Screen.AllScreens[screen.SelectedIndex]);
-            timerResolution = Native.timeBeginPeriod(1) == 0;
+            input.Configure(candidate, Screen.AllScreens[screen.SelectedIndex].Bounds, side.SelectedIndex == 0 ? "left" : "right", swap.Checked, (double)gain.Value);
             lastBytes = 0; connect.Text = "Отключить"; SaveSettings(); SetFields(false); UpdateStatus();
             if (reconnect.Checked) CredentialStore.Save(pairing.Text);
         }
@@ -250,10 +243,9 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     }
     private void Disconnect()
     {
-        input?.Return(); var old = link; link = null; old?.Dispose();
+        input?.Disconnect(); var old = link; link = null; old?.Dispose();
         connectingLink?.Dispose(); connectingLink = null;
         output?.Stop(); output?.Dispose(); output = null; endpoint?.Dispose(); endpoint = null;
-        if (timerResolution) { Native.timeEndPeriod(1); timerResolution = false; }
         connect.Text = "Подключить"; SetFields(true); UpdateStatus();
     }
     private void SetFields(bool enabled)
