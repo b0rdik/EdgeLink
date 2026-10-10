@@ -41,6 +41,7 @@ public sealed partial class MainWindow
     internal async Task Settle(){Root.UpdateLayout();await Task.Delay(60);Root.UpdateLayout();}
     private async Task CheckLayout(string name,string folder,List<object> cases,List<string> failures,bool snapshot) {
         if(viewport.ScrollableWidth>.5)failures.Add(name+": horizontal overflow");
+        if(navigation.SelectedItem is not NavigationViewItem selected||(int)selected.Tag!=selectedPage||!navigationItems[selectedPage].IsSelected)failures.Add(name+": navigation selection does not match the page");
         foreach(var element in Descendants(pages[selectedPage]).OfType<FrameworkElement>()) {
             if(element.Visibility!=Visibility.Visible||element.ActualWidth==0||element.ActualHeight==0)continue;
             var rect=element.TransformToVisual(pages[selectedPage]).TransformBounds(new Windows.Foundation.Rect(0,0,element.ActualWidth,element.ActualHeight));
@@ -49,7 +50,7 @@ public sealed partial class MainWindow
         }
         cases.Add(new {Name=name,Width=Root.ActualWidth,Height=Root.ActualHeight,Page=selectedPage,ScrollHeight=viewport.ScrollableHeight});
         if(snapshot) {
-            viewport.ChangeView(null,0,null,true);await Settle();
+            viewport.ChangeView(null,0,null,true);await Settle();await Task.Delay(250);
             var bitmap=new RenderTargetBitmap();await bitmap.RenderAsync(Root);var buffer=await bitmap.GetPixelsAsync();CryptographicBuffer.CopyToByteArray(buffer,out byte[] pixels);
             using var file=File.Create(Path.Combine(folder,name+".png"));using var stream=file.AsRandomAccessStream();
             var encoder=await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId,stream);

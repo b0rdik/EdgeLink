@@ -118,7 +118,7 @@ public sealed partial class MainWindow
         if(index<0||index>=pages.Count)return;
         if(selectedPage==index&&ReferenceEquals(viewport.Content,pages[index]))return;
         pageOffsets[selectedPage]=viewport.VerticalOffset;selectedPage=index;viewport.Content=pages[index];
-        if(!ReferenceEquals(navigation.SelectedItem,navigationItems[index]))navigation.SelectedItem=navigationItems[index];
+        if(navigation.SelectedItem is not NavigationViewItem selected||(int)selected.Tag!=index)navigation.SelectedItem=navigationItems[index];
         BeginInvoke(()=>viewport.ChangeView(null,pageOffsets[index],null,true));
     }
     private void UpdateManualNetwork() {
