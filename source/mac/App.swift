@@ -188,6 +188,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.pairingExported = true; UserDefaults.standard.set(true, forKey: "pairingExported"); state.status = "Файл сохранён. Откройте его в EdgeLink на Windows."
         } catch { state.status = error.localizedDescription }
     }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        show()
+        return false
+    }
     @objc private func show() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
     @objc private func updateClicked() {
         if let update = availableUpdate { offerUpdate(update) } else { checkUpdates(manual: true) }
