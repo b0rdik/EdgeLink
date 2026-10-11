@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "version": "0.3.4",
+  "results": [
+    {
+      "check": "ordinary foreground window keeps edge polling and no mouse hook/raw capture",
+      "pass": true
+    },
+    {
+      "check": "real borderless fullscreen foreground disables edge timer without mouse capture",
+      "pass": true
+    },
+    {
+      "check": "one second fullscreen idle has zero edge samples and zero repeated foreground inspections",
+      "pass": true,
+      "ordinary": {
+        "elapsedMs": 1005.9147,
+        "samples": 38,
+        "foregroundRefreshes": 0,
+        "inputThreadCpuMs": 15.625
+      },
+      "blocked": {
+        "elapsedMs": 1008.9306,
+        "samples": 0,
+        "foregroundRefreshes": 0,
+        "inputThreadCpuMs": 0
+      }
+    },
+    {
+      "check": "live protection toggle unregisters events/resumes polling and re-enabling pauses again",
+      "pass": true
+    },
+    {
+      "check": "focus switch from fullscreen to ordinary second window automatically resumes polling",
+      "pass": true
+    },
+    {
+      "check": "returning focus to the fullscreen fixture pauses polling again",
+      "pass": true
+    },
+    {
+      "check": "foreground window leaves fullscreen without changing focus; geometry event resumes polling",
+      "pass": true
+    },
+    {
+      "check": "disconnect removes event watchers and edge polling",
+      "pass": true
+    }
+  ]
+}

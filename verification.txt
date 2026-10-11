@@ -1,4 +1,14 @@
-EdgeLink 0.3.4 working branch — PC-side mouse hook removal, 2026-10-11
+EdgeLink 0.3.4 working branch — automatic fullscreen edge protection, 2026-10-11
+
+Source / installed EXE: bd1ffc09283ea0ba2b645ba8c78afb2a80759b63, Windows-only change. Default-on protection classifies the active client area covering the chosen monitor, including borderless games and fullscreen browser/video. Asynchronous foreground/owner-thread geometry WinEvents are coalesced; no process/window enumeration or periodic foreground polling. The edge timer stops entirely while blocked; PC mouse hook/Raw Input remain absent, keyboard hook/audio/network continue. Unblocking requires inward movement and 200 ms cooldown. Setting applies immediately and stays local.
+PASS: source rebuilt after publication on physical Windows 11 Pro 25H2 / 96 DPI, SDK 10.0.401, self-contained Release win-x64 with warnings as errors; no warnings. SHA-256 dc2af50a05bdbc8e95eee031d8410278ab32bd97872c20bd6ee9f2d05a0dde2e, 234444847 bytes.
+PASS: final native --input-checks 12/12, --fullscreen-checks 8/8, --layout-checks 108 cases / no failures, --tray-checks 8/8. Input pump response while UI blocked for 300 ms: 0.0928 ms. .NET --ui-loop-check: 39 PASS.
+MEASURED: real borderless WinUI fixture: ordinary interval 1005.9147 ms / 38 edge samples; blocked interval 1008.9306 ms / 0 edge samples. No repeated foreground inspections in either interval. Input thread CPU accounting 15.625 ms / 0 ms is quantized and too short for an exact percentage or an absolute-zero claim. Real focus and same-window geometry changes resume/pause sampling; live toggle and disconnect remove watchers. Fixture uses an unconnected Link and unreachable transfer bounds, no physical capture/clipping, synthetic input, sockets, credentials/settings or audio playback.
+PASS: native installed UI shows the enabled new settings section and automatically reconnects to Mac; close button hides into tray with process running. On the live screenshot 2 audio underruns are recorded; cause/audibility not established.
+PENDING USER: game menu / Alt+Tab / physical mouse smoothness / game frame time. User chose to test later. Prior 4000 Hz A/B applies to source 0e09116 below; no fresh A/B for this build is claimed. 8000 Hz, exclusive-fullscreen games, overlays and other DPI remain unverified. Public release/Mac code/protocol/audio unchanged; no secrets or personal settings added.
+Reports: docs/validation/windows-fullscreen-2026-10-11/ and docs/HANDOFF-WINDOWS.md.
+
+History: EdgeLink 0.3.4 working branch — PC-side mouse hook removal, 2026-10-11
 
 Windows code now samples cursor position with an ordinary 16 ms Win32 timer on the input thread while connected. No WH_MOUSE_LL or Raw Input is enabled while controlling the PC; mouse capture is installed only for Mac control and removed on return. Keyboard interception, protocol and audio are unchanged. The transition timer has no strict maximum latency under load.
 PASS: preliminary Windows self-contained win-x64 publish with TreatWarningsAsErrors, no warnings.
