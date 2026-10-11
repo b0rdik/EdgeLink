@@ -12,7 +12,7 @@ internal static class Program
 {
     internal static readonly string[] Arguments=Environment.GetCommandLineArgs();
     internal static bool Has(string argument)=>Arguments.Contains(argument);
-    internal static bool Diagnostic=>Has("--layout-checks")||Has("--tray-checks")||Has("--ui-preview");
+    internal static bool Diagnostic=>Has("--layout-checks")||Has("--tray-checks")||Has("--fullscreen-checks")||Has("--ui-preview");
     [STAThread] private static void Main() {
         if(Has("--input-checks")){Environment.ExitCode=InputChecks.Run();return;}
         if(!Diagnostic&&!SingleInstance.Acquire())return;
@@ -45,6 +45,7 @@ public sealed partial class MainWindow:Window
     private readonly SettingsCheckBox swap=new(){Content="Ctrl на ПК → Command на Mac",CheckedValue=true};
     private readonly SettingsCheckBox automatic=new(){Content="Найти Mac и Ethernet автоматически",CheckedValue=true};
     private readonly SettingsCheckBox reconnect=new(){Content="Запоминать Mac и подключаться автоматически",CheckedValue=true};
+    private readonly SettingsCheckBox protectFullscreen=new(){Content="Блокировать переходы в полноэкранных приложениях",CheckedValue=true};
     private readonly ActionButton importPairing=Theme.Button("Открыть файл подключения с Mac…"),firewall=Theme.Button("Разрешить соединение по Ethernet…");
     private readonly NumberBox gain=new(){Minimum=.1,Maximum=4,SmallChange=.1,Value=1,SpinButtonPlacementMode=NumberBoxSpinButtonPlacementMode.Inline};
     private readonly ActionButton connect=Theme.Button("Подключить",true),updateButton=Theme.Button("Проверить обновления");
@@ -92,6 +93,8 @@ public sealed partial class MainWindow:Window
         firewall.Click+=async (_,_)=>{if(!previewMode)await ConfigureFirewall();};
         updateButton.Click+=async (_,_)=>{if(previewMode)return;if(availableUpdate is {} update)await OfferUpdate(update);else await CheckUpdates(true);};
         gain.ValueChanged+=(_,_)=>{if(double.IsNaN(gain.Value))gain.Value=1;};
+        protectFullscreen.Checked+=(_,_)=>ApplyFullscreenProtection();
+        protectFullscreen.Unchecked+=(_,_)=>ApplyFullscreenProtection();
         Root.Loaded+=async (_,_)=>await Start();
         Closed+=(_,_)=> {
             IsDisposed=true;updateCancellation.Cancel();reconnectTimer.Stop();refresh.Stop();
@@ -103,8 +106,9 @@ public sealed partial class MainWindow:Window
         if(started)return;started=true;
         if(Program.Has("--layout-checks")){Environment.ExitCode=await LayoutChecks.Run(this);ExitFromTray();return;}
         if(Program.Has("--tray-checks")){Environment.ExitCode=await TrayChecks.Run(this);ExitFromTray();return;}
+        if(Program.Has("--fullscreen-checks")){Environment.ExitCode=await FullscreenChecks.Run(this);ExitFromTray();return;}
         if(previewMode)return;
-        try{input=new Input(BeginInvoke);input.Changed+=UpdateStatus;}catch(Exception e){status.Text=e.Message;connect.IsEnabled=false;}
+        try{input=new Input(BeginInvoke);input.SetFullscreenProtection(protectFullscreen.CheckedValue);input.Changed+=UpdateStatus;}catch(Exception e){status.Text=e.Message;connect.IsEnabled=false;}
         SingleInstance.StartServer(this,updateCancellation.Token);RegisterPairingType();_ = CheckUpdates(false);
         reconnectTimer.Start();refresh.Start();
         string[] args=Program.Arguments;

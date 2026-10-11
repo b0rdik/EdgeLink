@@ -55,6 +55,11 @@ internal sealed class InputPump:IDisposable
         if(!Desktop.PostMessage(Handle,WorkMessage,0,0))result.TrySetException(new System.ComponentModel.Win32Exception());
         return result.Task;
     }
+    public void Post(Action action) {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed)!=0,this);
+        work.Enqueue(action);
+        if(!Desktop.PostMessage(Handle,WorkMessage,0,0))throw new System.ComponentModel.Win32Exception();
+    }
     public void Invoke(Action action)=>Query(()=> {action();return true;}).GetAwaiter().GetResult();
     public void Dispose() {
         if(Interlocked.Exchange(ref disposed,1)!=0)return;

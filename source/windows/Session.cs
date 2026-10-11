@@ -159,13 +159,19 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
         if (link == null) stats.Text = "Нет активного соединения.";
         UpdateWizard(); UpdateTrayStatus();
     }
+    private void ApplyFullscreenProtection()
+    {
+        if(previewMode)return;
+        try { input?.SetFullscreenProtection(protectFullscreen.CheckedValue); SaveSettings(); UpdateStatus(); }
+        catch(Exception error) { status.Text="Не удалось изменить защиту полного экрана: "+error.Message; }
+    }
     private void SaveSettings()
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
             // Pairing secret deliberately stays out of the settings file.
-            File.WriteAllText(configPath, JsonSerializer.Serialize(new { setupComplete, macName, local = local.Text, remote = remote.Text, automatic = automatic.CheckedValue, reconnect = reconnect.CheckedValue, side = side.SelectedIndex, jitter = jitter.SelectedIndex, mouseRate = mouseRate.SelectedIndex, gain = gain.Value, swap = swap.CheckedValue, device = devices[device.SelectedIndex].id }));
+            File.WriteAllText(configPath, JsonSerializer.Serialize(new { setupComplete, macName, local = local.Text, remote = remote.Text, automatic = automatic.CheckedValue, reconnect = reconnect.CheckedValue, protectFullscreen = protectFullscreen.CheckedValue, side = side.SelectedIndex, jitter = jitter.SelectedIndex, mouseRate = mouseRate.SelectedIndex, gain = gain.Value, swap = swap.CheckedValue, device = devices[device.SelectedIndex].id }));
         }
         catch { }
     }
@@ -182,6 +188,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             if (root.TryGetProperty("mouseRate", out var rate)) mouseRate.SelectedIndex = Math.Clamp(rate.GetInt32(), 0, 2);
             if (root.TryGetProperty("automatic", out var auto)) automatic.CheckedValue = auto.GetBoolean();
             if (root.TryGetProperty("reconnect", out var reconnectValue)) reconnect.CheckedValue = reconnectValue.GetBoolean();
+            if (root.TryGetProperty("protectFullscreen", out var protection)) protectFullscreen.CheckedValue = protection.GetBoolean();
             gain.Value = Math.Clamp(root.GetProperty("gain").GetDouble(), gain.Minimum, gain.Maximum);
             swap.CheckedValue = root.GetProperty("swap").GetBoolean();
             int index = devices.FindIndex(v => v.id == root.GetProperty("device").GetString()); if (index >= 0) device.SelectedIndex = index;

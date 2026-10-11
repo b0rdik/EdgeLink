@@ -16,6 +16,10 @@ internal sealed class Input : IDisposable
     private double x, y;
     private uint epoch;
     private readonly InputEdge edge = new();
+    private ForegroundGuard? foreground;
+    private bool fullscreenProtection = true;
+    private volatile bool fullscreenBlocked;
+    private long edgeSamples;
     private volatile bool active;
     private bool rawRegistered, timerResolution;
     private nint rawMemory;
@@ -26,6 +30,7 @@ internal sealed class Input : IDisposable
     private bool SwapControlCommand = true;
     private double Gain = 1;
     public bool Active => active;
+    public bool FullscreenBlocked => fullscreenBlocked;
     public event Action? Changed;
     public Input(Action<Action> dispatch)
     {
@@ -44,18 +49,48 @@ internal sealed class Input : IDisposable
     {
         pump.Invoke(() => {
             ReturnCore(); this.connection = connection; pcBounds = bounds; Side = side; SwapControlCommand = swap; Gain = gain;
-            Desktop.GetCursorPos(out var point); edge.Reset(point); pump.PollEvery(16);
+            Desktop.GetCursorPos(out var point); edge.Reset(point);
+            ConfigureForeground(); UpdatePolling();
         });
     }
-    public void Disconnect() { pump.Invoke(() => { ReturnCore(); connection = null; pump.PollEvery(0); }); }
+    public void SetFullscreenProtection(bool enabled) => pump.Invoke(() => {
+        fullscreenProtection = enabled; ConfigureForeground(); UpdatePolling();
+    });
+    private void ConfigureForeground()
+    {
+        foreground?.Stop();
+        if (fullscreenProtection && connection?.IsAlive == true) {
+            foreground ??= new ForegroundGuard(pump.Post, ForegroundChanged);
+            foreground.Start(pcBounds);
+        }
+        ForegroundChanged();
+    }
+    private void ForegroundChanged()
+    {
+        bool blocked = foreground?.Blocked == true;
+        bool wasBlocked = fullscreenBlocked;
+        fullscreenBlocked = blocked;
+        if (wasBlocked && !blocked && !Active && Desktop.GetCursorPos(out var point))
+            edge.Reset(point, requireInward: true, notBefore: Environment.TickCount64 + 200);
+        UpdatePolling();
+        if (wasBlocked != blocked) NotifyChanged();
+    }
+    private void UpdatePolling() => pump.PollEvery(connection?.IsAlive == true && !fullscreenBlocked ? 16u : 0u);
+    public void Disconnect() { pump.Invoke(() => { ReturnCore(); connection = null; foreground?.Stop(); ForegroundChanged(); }); }
     private void PollEdge()
     {
+        edgeSamples++;
         var current = connection;
-        if (current?.IsAlive != true) { ReturnCore(); pump.PollEvery(0); return; }
+        if (current?.IsAlive != true) { ReturnCore(); foreground?.Stop(); ForegroundChanged(); return; }
+        if (FullscreenBlocked) return;
         if (Active || !Desktop.GetCursorPos(out var point)) return;
         bool atEdge = Side == "left" ? point.X <= pcBounds.Left : point.X >= pcBounds.Right - 1;
         bool blocked = physicalKeys.Count != 0 || (atEdge && ButtonHeld());
         if (!edge.Observe(point, pcBounds, Side, blocked, Environment.TickCount64)) return;
+        // Close the asynchronous focus-notification race only at an attempted edge
+        // crossing. No foreground/window inspection in the ordinary 16 ms loop.
+        foreground?.Refresh();
+        if (FullscreenBlocked) return;
         epoch = unchecked(epoch + 1); x = Side == "left" ? current.MacWidth - 2 : 1;
         y = Math.Clamp((point.Y - pcBounds.Top) / (double)pcBounds.Height * current.MacHeight, 0, current.MacHeight - 1);
         if (!current.Command(new { type = "enter", epoch, x, y })) return;
@@ -167,6 +202,16 @@ internal sealed class Input : IDisposable
     }
     internal Task<int> ProbeThread() => pump.Query(() => Environment.CurrentManagedThreadId);
     internal Task<(bool MouseHook, bool Raw, bool Polling)> ProbeState() => pump.Query(() => (mouseHook != 0, rawRegistered, pump.Polling));
+    internal Task<(bool Registered, bool Blocked, long Refreshes)> ProbeForeground() => pump.Query(() => (foreground?.Registered == true, fullscreenBlocked, foreground?.Refreshes ?? 0));
+    // Diagnostics use unreachable transfer bounds and independently watch a real
+    // fixture screen, so they exercise foreground events without capturing input.
+    internal void ProbeProtectionScreen(Rectangle bounds) => pump.Invoke(() => {
+        foreground!.Start(bounds); ForegroundChanged();
+    });
+    internal Task<(long Samples, long Refreshes, long CpuTicks)> ProbeSampling() => pump.Query(() => {
+        if(!Native.GetThreadTimes(new nint(-2),out _,out _,out long kernel,out long user))throw new System.ComponentModel.Win32Exception();
+        return (edgeSamples,foreground?.Refreshes ?? 0,kernel+user);
+    });
     internal Task<bool> ProbeMouseHookCycle() => pump.Query(() => {
         if (Active || mouseHook != 0) throw new InvalidOperationException("Mouse capture already active.");
         mouseHook = Native.SetWindowsHookEx(14, mouseCallback, Native.GetModuleHandle(null), 0);
@@ -174,6 +219,7 @@ internal sealed class Input : IDisposable
     });
     private void Cleanup()
     {
+        foreground?.Dispose();
         ReturnCore(); UnregisterRaw();
         if (keyboardHook != 0) { Native.UnhookWindowsHookEx(keyboardHook); keyboardHook = 0; }
         RemoveMouseHook();
