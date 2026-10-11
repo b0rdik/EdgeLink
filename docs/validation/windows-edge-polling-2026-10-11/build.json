@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "0e09116ca209ff767bfb8892e2d599db4431a043",
+  "productVersion": "0.3.4+0e09116ca209ff767bfb8892e2d599db4431a043",
+  "sha256": "96946cf82731c909a0d64bfc71fd0c56b801bb4a1c7c92dbe4ea9a21217315e4",
+  "bytes": 234424367,
+  "sdk": "10.0.401",
+  "framework": "WinUI 3",
+  "runtimeIdentifier": "win-x64",
+  "selfContained": true,
+  "warningsAsErrors": true,
+  "nativeInputChecks": 10,
+  "nativeTrayChecks": 8,
+  "softwareChecks": 39
+}
