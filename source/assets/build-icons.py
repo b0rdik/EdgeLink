@@ -28,6 +28,18 @@ LETTERS = (
 )
 
 
+def write_icns(assets):
+    entries = ((b"icp4", 16), (b"icp5", 32), (b"icp6", 64),
+               (b"ic07", 128), (b"ic08", 256), (b"ic09", 512), (b"ic10", 1024),
+               (b"ic11", 32), (b"ic12", 64), (b"ic13", 256), (b"ic14", 512))
+    chunks = []
+    for kind, size in entries:
+        data = (assets / f"icon-{size}.png").read_bytes()
+        chunks.append(struct.pack(">4sI", kind, len(data) + 8) + data)
+    payload = b"".join(chunks)
+    (assets / "EdgeLink.icns").write_bytes(struct.pack(">4sI", b"icns", len(payload) + 8) + payload)
+
+
 def path_points(commands):
     points = []
     for command, *args in commands:
@@ -105,9 +117,9 @@ def build(assets):
         offset += len(data)
     (assets / "EdgeLink.ico").write_bytes(struct.pack("<HHH", 0, 1, len(images)) + b"".join(entries + blobs))
 
-    # Pillow writes the macOS ICNS container without requiring AppKit/iconutil.
-    render(1024).save(assets / "EdgeLink.icns", format="ICNS",
-                      append_images=[render(size) for size in SIZES if size >= 128])
+    # PNG-backed ICNS entries include the native 16 px icon as well as Retina
+    # variants. Pillow's ICNS writer omits the 16 px representation.
+    write_icns(assets)
 
     # A true alpha template for light/dark macOS menu bars, without the app tile.
     template = Image.new("RGBA", (1024*SUPERSAMPLE, 1024*SUPERSAMPLE))
