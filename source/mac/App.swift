@@ -117,8 +117,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(rootView: Dashboard(state: state))
     }
     private func menuIcon() -> NSImage {
-        let image = NSImage(named: "EdgeLinkStatus") ?? NSImage(size: NSSize(width: 23, height: 18))
-        image.size = NSSize(width: 23, height: 18)
+        let image = NSImage(named: "EdgeLinkStatus") ?? NSImage(size: NSSize(width: 18, height: 14))
+        image.size = NSSize(width: 18, height: 14)
         image.isTemplate = true
         return image
     }
