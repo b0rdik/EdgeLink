@@ -13,5 +13,7 @@
   "internalInputStateInspectedInRunningApplication": false,
   "userReportedOnOffDifference": "Разницы не заметил",
   "appAbsentBeforeAndAfterControl": true,
-  "applicationLeftClosed": true
+  "applicationLeftClosed": false,
+  "applicationRestartedAfterOffControl": true,
+  "secondsStartedAfterOffReport": 126.279048
 }
