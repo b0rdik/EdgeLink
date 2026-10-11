@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "results": [
+    {
+      "check": "ordinary foreground window keeps edge polling and no mouse hook/raw capture",
+      "pass": true
+    }
+  ],
+  "error": "System.Exception: Foreground protection did not reach expected state: blocked=True\r\n   at EdgeLink.FullscreenChecks.WaitFor(Input input, Boolean blocked)\r\n   at EdgeLink.FullscreenChecks.Run(MainWindow window)"
+}
