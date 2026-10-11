@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "aa2763fe7ac76604eaf2121db24d0552bf219fe5",
+  "version": "1.0.0",
+  "keepAwakeLifecyclePassed": 10,
+  "nativeUIToggleOffReleasedAssertion": true,
+  "disabledPreferencePersistedAfterRestart": true,
+  "nativeUIToggleOnHeldExactlyOneAssertion": true,
+  "quitRemovedAssertion": true,
+  "enabledPreferencePersistedAfterRestart": true,
+  "sameSigningRequirement": true,
+  "installedExecutableSHA256": "2b1dc6f2c0e6b3236f93ee6452b1fbfb5380685531490ecafa8cff140a14f6f1",
+  "scope": "idle display and system sleep while the process runs; no explicit sleep/lid override"
+}
