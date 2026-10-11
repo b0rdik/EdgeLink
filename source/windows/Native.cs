@@ -5,6 +5,7 @@ namespace EdgeLink;
 internal static class Native
 {
     public delegate nint Hook(int code, nint message, nint data);
+    public delegate void WinEvent(nint hook, uint eventId, nint window, int objectId, int childId, uint thread, uint time);
     [StructLayout(LayoutKind.Sequential)] public struct Point { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct KeyboardData { public uint VK, Scan, Flags, Time; public nuint Extra; }
@@ -22,6 +23,14 @@ internal static class Native
     [DllImport("user32")] public static extern bool ClipCursor(ref Rect rect);
     [DllImport("user32")] public static extern bool ClipCursor(nint rect);
     [DllImport("user32")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32", SetLastError = true)] public static extern nuint SetTimer(nint window, nuint id, uint milliseconds, nint callback);
+    [DllImport("user32")] public static extern bool KillTimer(nint window, nuint id);
+    [DllImport("user32")] public static extern nint GetForegroundWindow();
+    [DllImport("user32")] public static extern uint GetWindowThreadProcessId(nint window, out uint process);
+    [DllImport("user32")] public static extern bool ClientToScreen(nint window, ref Point point);
+    [DllImport("user32", SetLastError = true)] public static extern nint SetWinEventHook(uint min, uint max, nint module, WinEvent callback, uint process, uint thread, uint flags);
+    [DllImport("user32")] public static extern bool UnhookWinEvent(nint hook);
+    [DllImport("kernel32", SetLastError = true)] public static extern bool GetThreadTimes(nint thread, out long creation, out long exit, out long kernel, out long user);
     [DllImport("winmm")] public static extern uint timeBeginPeriod(uint period);
     [DllImport("winmm")] public static extern uint timeEndPeriod(uint period);
 }

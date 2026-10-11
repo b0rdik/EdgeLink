@@ -56,7 +56,6 @@ internal static class Desktop
     [DllImport("user32")] internal static extern bool ShowWindow(nint window,int command);
     [DllImport("user32")] internal static extern bool SetForegroundWindow(nint window);
     [DllImport("user32")] internal static extern bool GetClientRect(nint window,out Native.Rect rect);
-    [DllImport("user32")] internal static extern bool GetWindowRect(nint window,out Native.Rect rect);
     [DllImport("user32")] internal static extern bool GetCursorPos(out Native.Point point);
     [DllImport("user32",CharSet=CharSet.Unicode)] internal static extern int MessageBox(nint owner,string text,string title,uint flags);
     [DllImport("shell32",CharSet=CharSet.Unicode)] internal static extern int SetCurrentProcessExplicitAppUserModelID(string id);

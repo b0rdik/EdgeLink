@@ -54,7 +54,7 @@ public sealed partial class MainWindow
             navigationItems.Add(item);navigation.MenuItems.Add(item);
         }
         // Keep the navigation strip independent of page measurement and scrolling.
-        // Let the native selection animation start before building the next page's layout.
+        // Start the compositor indicator before building the next page's layout.
         navigation.Resources["NavigationViewContentBackground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         // Replace the built-in stretching indicator with one fixed-width compositor visual.
         navigation.Resources["NavigationViewSelectionIndicatorForeground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);
@@ -124,6 +124,7 @@ public sealed partial class MainWindow
 
         var preferences=Page();preferences.Children.Add(Theme.Card("Рабочий стол","Выберите монитор ПК, у края которого начнётся переход.",Theme.Field("Экран ПК",screen),Theme.Field("Передача мыши",mouseRate),Theme.Field("Скорость мыши",gain),swap));
         preferences.Children.Add(Theme.Card("Звук и расположение","Параметры используются при следующем соединении.",Theme.Field("Аудиовыход",device),Theme.Field("Mac расположен",side),Theme.Field("Буфер звука",jitter)));
+        preferences.Children.Add(Theme.Card("Игры и полный экран","Переходы отключаются, когда активное приложение занимает весь выбранный экран ПК. Работает и в режиме «полноэкранный в окне», включая меню игры. После Alt+Tab переходы восстанавливаются; отведите курсор от края перед новым переходом.",protectFullscreen,Theme.Label("Также действует для полноэкранного видео и браузера. Звук Mac продолжает работать. Настройка применяется сразу.",13,muted:true)));
         preferences.Children.Add(Theme.Card("Соединение","Обычно достаточно автоматического поиска.",automatic,reconnect));
         manualNetwork=Theme.Card("Ручное подключение","Используйте, если автоматический поиск не подходит.",Theme.Field("IPv4 ПК",local),Theme.Field("IPv4 Mac",remote),Theme.Field("Ключ с Mac",pairing));preferences.Children.Add(manualNetwork);
         preferences.Children.Add(Theme.Card("Обновления","Новые версии из b0rdik/EdgeLink. Установка — после подтверждения.",updateButton,updateStatus));
@@ -158,6 +159,7 @@ public sealed partial class MainWindow
         }
         connectionHeading.Text=link==null?"Давайте подключимся":input?.Active==true?"Управление на Mac":"Всё подключено";
         inputHint.Text=side.SelectedIndex==0?"Доведите курсор до левого края экрана ПК. На Mac он появится справа.":"Доведите курсор до правого края экрана ПК. На Mac он появится слева.";
+        if(input?.FullscreenBlocked==true)inputHint.Text="Переходы приостановлены: активно полноэкранное приложение. После Alt+Tab отведите курсор от края и повторите переход.";
         Grid.SetColumn(macTile,side.SelectedIndex==0?0:2);Grid.SetColumn(pcTile,side.SelectedIndex==0?2:0);
         ((TextBlock)((StackPanel)macTile.Child).Children[2]).Text=side.SelectedIndex==0?"Экран слева":"Экран справа";
         macTile.BorderBrush=link!=null&&input?.Active==true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");

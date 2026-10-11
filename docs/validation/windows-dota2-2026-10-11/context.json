@@ -1,0 +1,19 @@
+{
+  "game": "Dota 2",
+  "userConfirmedPollingHz": 4000,
+  "sourceCommit": "bd1ffc09283ea0ba2b645ba8c78afb2a80759b63",
+  "productVersion": "0.3.4+bd1ffc09283ea0ba2b645ba8c78afb2a80759b63",
+  "sha256": "dc2af50a05bdbc8e95eee031d8410278ab32bd97872c20bd6ee9f2d05a0dde2e",
+  "userReportedFeelBeforeCleanRepeat": "вроде все норм",
+  "firstRunExcludedReason": "User confirmed switching between windows; six foreground changes, only 63 of 92 foreground samples fullscreen",
+  "applicationRestartedDuringMeasurements": false,
+  "freshGameOffControl": true,
+  "gameFrameTimesMeasured": false,
+  "fullSensorToDisplayLatencyMeasured": false,
+  "internalInputStateInspectedInRunningApplication": false,
+  "userReportedOnOffDifference": "Разницы не заметил",
+  "appAbsentBeforeAndAfterControl": true,
+  "applicationLeftClosed": false,
+  "applicationRestartedAfterOffControl": true,
+  "secondsStartedAfterOffReport": 126.279048
+}

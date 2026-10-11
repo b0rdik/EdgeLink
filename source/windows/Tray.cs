@@ -76,15 +76,20 @@ public sealed partial class MainWindow
     [StructLayout(LayoutKind.Sequential)]private struct MinMaxInfo {public Native.Point Reserved,MaxSize,MaxPosition,MinTrackSize,MaxTrackSize;}
     private void InitializeWindowLifecycle() {
         subclass=WindowMessage;if(!SetWindowSubclass(Handle,subclass,1,0))throw new Win32Exception();
-        AppWindow.Closing+=(_,e)=>{if(ShouldHideOnClose){e.Cancel=true;Desktop.ShowWindow(Handle,0);}};
-        var background=Windows.UI.Color.FromArgb(255,32,32,32);var text=Windows.UI.Color.FromArgb(255,245,245,245);
-        AppWindow.TitleBar.BackgroundColor=background;AppWindow.TitleBar.ForegroundColor=text;
-        AppWindow.TitleBar.ButtonBackgroundColor=background;AppWindow.TitleBar.ButtonForegroundColor=text;
+        AppWindow.Closing+=(_,e)=>{if(ShouldHideOnClose){e.Cancel=true;Desktop.ShowWindow(Handle,0);UpdateStatsTimer();}};
+        // Keep DWM's native caption: WinUI's color-customized caption retains
+        // close hover when Closing is cancelled and the window is hidden.
+        AppWindow.TitleBar.ResetToDefault();
+        int dark=1,background=0x202020,text=0xf5f5f5;
+        DwmSetWindowAttribute(Handle,20,ref dark,sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE
+        DwmSetWindowAttribute(Handle,35,ref background,sizeof(int)); // DWMWA_CAPTION_COLOR
+        DwmSetWindowAttribute(Handle,36,ref text,sizeof(int)); // DWMWA_TEXT_COLOR
         double scale=Desktop.GetDpiForWindow(Handle)/96.0;var work=Desktop.PrimaryScreen.WorkingArea;
         int width=Math.Min((int)(880*scale),work.Width),height=Math.Min((int)(900*scale),work.Height);
         AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(work.Left+(work.Width-width)/2,work.Top+(work.Height-height)/2,width,height));
     }
     private nint WindowMessage(nint window,uint message,nuint wParam,nint lParam,nuint id,nuint reference) {
+        if(message==0x5)UpdateStatsTimer(); // WM_SIZE includes minimize and restore.
         if(message==0x11)ShuttingDown=true;
         if(message==0x16){if(wParam!=0)BeginInvoke(ExitFromTray);else ShuttingDown=false;}
         if(message==0x24) {
@@ -98,10 +103,11 @@ public sealed partial class MainWindow
     private void DisposeTray(){trayIcon?.Dispose();trayIcon=null;}
     private async Task ToggleConnection(){if(!CanToggleConnection)return;if(link==null){manuallyPaused=false;await Connect();}else{manuallyPaused=true;Disconnect();}}
     internal async void ToggleFromTray()=>await ToggleConnection();
-    internal void RestoreFromTray(){if(IsDisposed)return;Desktop.ShowWindow(Handle,Desktop.IsIconic(Handle)?9:5);Activate();Desktop.SetForegroundWindow(Handle);RefreshStats();}
+    internal void RestoreFromTray(){if(IsDisposed)return;Desktop.ShowWindow(Handle,Desktop.IsIconic(Handle)?9:5);Activate();Desktop.SetForegroundWindow(Handle);RefreshStats();UpdateStatsTimer();}
     internal void ExitFromTray(){if(IsDisposed)return;exitRequested=true;Close();}
     private void UpdateTrayStatus()=>trayIcon?.Update(link==null?"EdgeLink — не подключено":input?.Active==true?"EdgeLink — управление Mac · звук подключён":"EdgeLink — управление ПК · звук подключён");
     [DllImport("comctl32")]private static extern bool SetWindowSubclass(nint window,SubclassProcedure callback,nuint id,nuint reference);
     [DllImport("comctl32")]private static extern bool RemoveWindowSubclass(nint window,SubclassProcedure callback,nuint id);
     [DllImport("comctl32")]private static extern nint DefSubclassProc(nint window,uint message,nuint wParam,nint lParam);
+    [DllImport("dwmapi")]private static extern int DwmSetWindowAttribute(nint window,uint attribute,ref int value,int size);
 }

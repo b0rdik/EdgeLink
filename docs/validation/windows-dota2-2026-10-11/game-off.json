@@ -1,0 +1,143 @@
+{
+  "scenario": "dota2-fullscreen-app-fully-closed-user-4000hz",
+  "configuredPollingHz": 4000,
+  "targetProductVersion": null,
+  "warmupSeconds": 3,
+  "sampledSeconds": 20,
+  "observedSeconds": 23.0160839,
+  "physicalMoveHookEvents": 76098,
+  "rawMovementEvents": 2657,
+  "chainTiming": {
+    "samples": 76098,
+    "meanMs": 0.00010376619622069207,
+    "p50Ms": 0.0001,
+    "p95Ms": 0.0002,
+    "p99Ms": 0.0002,
+    "p999Ms": 0.0003,
+    "maxMs": 0.0114,
+    "over1Ms": 0,
+    "over5Ms": 0
+  },
+  "rawArrivalGaps": {
+    "samples": 2656,
+    "meanMs": 7.5270353162650565,
+    "p50Ms": 7.9954,
+    "p95Ms": 8.6137,
+    "p99Ms": 14.1332,
+    "p999Ms": 15.3008,
+    "maxMs": 248.0616,
+    "over1Ms": 2429,
+    "over5Ms": 2394
+  },
+  "perSecond": [
+    {
+      "second": 1,
+      "rawMovementEvents": 130,
+      "physicalMoveHookEvents": 3829
+    },
+    {
+      "second": 2,
+      "rawMovementEvents": 130,
+      "physicalMoveHookEvents": 3842
+    },
+    {
+      "second": 3,
+      "rawMovementEvents": 136,
+      "physicalMoveHookEvents": 3975
+    },
+    {
+      "second": 4,
+      "rawMovementEvents": 130,
+      "physicalMoveHookEvents": 3973
+    },
+    {
+      "second": 5,
+      "rawMovementEvents": 136,
+      "physicalMoveHookEvents": 3852
+    },
+    {
+      "second": 6,
+      "rawMovementEvents": 132,
+      "physicalMoveHookEvents": 3813
+    },
+    {
+      "second": 7,
+      "rawMovementEvents": 135,
+      "physicalMoveHookEvents": 3786
+    },
+    {
+      "second": 8,
+      "rawMovementEvents": 136,
+      "physicalMoveHookEvents": 3808
+    },
+    {
+      "second": 9,
+      "rawMovementEvents": 133,
+      "physicalMoveHookEvents": 3814
+    },
+    {
+      "second": 10,
+      "rawMovementEvents": 92,
+      "physicalMoveHookEvents": 2617
+    },
+    {
+      "second": 11,
+      "rawMovementEvents": 137,
+      "physicalMoveHookEvents": 3898
+    },
+    {
+      "second": 12,
+      "rawMovementEvents": 142,
+      "physicalMoveHookEvents": 3987
+    },
+    {
+      "second": 13,
+      "rawMovementEvents": 134,
+      "physicalMoveHookEvents": 3978
+    },
+    {
+      "second": 14,
+      "rawMovementEvents": 136,
+      "physicalMoveHookEvents": 3912
+    },
+    {
+      "second": 15,
+      "rawMovementEvents": 142,
+      "physicalMoveHookEvents": 3799
+    },
+    {
+      "second": 16,
+      "rawMovementEvents": 136,
+      "physicalMoveHookEvents": 3765
+    },
+    {
+      "second": 17,
+      "rawMovementEvents": 133,
+      "physicalMoveHookEvents": 3924
+    },
+    {
+      "second": 18,
+      "rawMovementEvents": 137,
+      "physicalMoveHookEvents": 3903
+    },
+    {
+      "second": 19,
+      "rawMovementEvents": 135,
+      "physicalMoveHookEvents": 3819
+    },
+    {
+      "second": 20,
+      "rawMovementEvents": 135,
+      "physicalMoveHookEvents": 3804
+    }
+  ],
+  "suppressedDownstream": 0,
+  "droppedTimingSamples": 0,
+  "rawReadErrors": 0,
+  "logicalProcessors": 16,
+  "targetCpuPercentMachine": 0,
+  "targetCpuPercentOneCore": 0,
+  "observerCpuPercentMachine": 0.36065132913423203,
+  "targetWorkingSetMiB": null,
+  "note": "Hook timings cover CallNextHookEx and the remaining existing hook chain, including scheduler/IPC costs. Raw arrival gaps are observer delivery gaps, not USB polling latency or proof of lost reports. CPU includes the 3-second warm-up. All physical mouse devices are counted together; injected hook events are excluded."
+}

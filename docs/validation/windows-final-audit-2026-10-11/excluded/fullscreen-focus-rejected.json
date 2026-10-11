@@ -1,0 +1,5 @@
+{
+  "passed": false,
+  "results": [],
+  "error": "System.Exception: Foreground protection did not reach expected state: blocked=False; registered=True; actualBlocked=False; polling=True; refreshes=2; foregroundMatches=False; foregroundFullscreen=False; fixtureFullscreen=False\r\n   at EdgeLink.FullscreenChecks.WaitFor(Input input, Boolean blocked, IntPtr expectedWindow)\r\n   at EdgeLink.FullscreenChecks.Run(MainWindow window)"
+}

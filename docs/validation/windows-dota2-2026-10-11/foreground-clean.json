@@ -1,0 +1,11 @@
+{
+  "observedSeconds": 20.030999999988126,
+  "warmupSeconds": 3,
+  "sampleIntervalMs": 250,
+  "fullscreenClientSamples": 80,
+  "ordinaryClientSamples": 0,
+  "unavailableSamples": 0,
+  "foregroundWindowChanges": 0,
+  "rule": "foreground client covers primary Windows monitor; passive geometry samples, not inspection of EdgeLink internal state",
+  "note": "Independent sampler runs alongside the same observer; sampling boundaries differ slightly between processes. No titles, process names, coordinates, keys or device identifiers retained. Its CPU overhead was not separately measured."
+}

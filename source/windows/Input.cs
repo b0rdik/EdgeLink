@@ -15,8 +15,11 @@ internal sealed class Input : IDisposable
     private Rectangle pcBounds;
     private double x, y;
     private uint epoch;
-    private long rearmAt;
-    private bool inwardRequired;
+    private readonly InputEdge edge = new();
+    private ForegroundGuard? foreground;
+    private bool fullscreenProtection = true;
+    private volatile bool fullscreenBlocked;
+    private long edgeSamples;
     private volatile bool active;
     private bool rawRegistered, timerResolution;
     private nint rawMemory;
@@ -27,26 +30,88 @@ internal sealed class Input : IDisposable
     private bool SwapControlCommand = true;
     private double Gain = 1;
     public bool Active => active;
+    public bool FullscreenBlocked => fullscreenBlocked;
     public event Action? Changed;
     public Input(Action<Action> dispatch)
     {
         this.dispatch = dispatch;
         pcBounds = Desktop.PrimaryScreen.Bounds;
         keyboardCallback = Keyboard; mouseCallback = Mouse;
-        pump = new InputPump(Install, Cleanup, Raw);
+        pump = new InputPump(Install, Cleanup, Raw, PollEdge);
     }
     private void Install()
     {
         rawMemory = Marshal.AllocHGlobal(RawCapacity);
         keyboardHook = Native.SetWindowsHookEx(13, keyboardCallback, Native.GetModuleHandle(null), 0);
-        mouseHook = Native.SetWindowsHookEx(14, mouseCallback, Native.GetModuleHandle(null), 0);
-        if (keyboardHook == 0 || mouseHook == 0) throw new System.ComponentModel.Win32Exception();
+        if (keyboardHook == 0) throw new System.ComponentModel.Win32Exception();
     }
     public void Configure(Link connection, Rectangle bounds, string side, bool swap, double gain)
     {
-        pump.Invoke(() => { ReturnCore(); this.connection = connection; pcBounds = bounds; Side = side; SwapControlCommand = swap; Gain = gain; });
+        pump.Invoke(() => {
+            ReturnCore(); this.connection = connection; pcBounds = bounds; Side = side; SwapControlCommand = swap; Gain = gain;
+            Desktop.GetCursorPos(out var point); edge.Reset(point);
+            ConfigureForeground();
+        });
     }
-    public void Disconnect() { pump.Invoke(() => { ReturnCore(); connection = null; }); }
+    public void SetFullscreenProtection(bool enabled) => pump.Invoke(() => {
+        if(fullscreenProtection==enabled)return;
+        fullscreenProtection = enabled; ConfigureForeground();
+    });
+    private void ConfigureForeground()
+    {
+        if (fullscreenProtection && connection?.IsAlive == true) {
+            foreground ??= new ForegroundGuard(pump.Post, ForegroundChanged);
+            foreground.Start(pcBounds);
+        }
+        else foreground?.Stop();
+        ForegroundChanged();
+    }
+    private void ForegroundChanged()
+    {
+        bool blocked = foreground?.Blocked == true;
+        bool wasBlocked = fullscreenBlocked;
+        fullscreenBlocked = blocked;
+        if (wasBlocked && !blocked && !Active && Desktop.GetCursorPos(out var point))
+            edge.Reset(point, requireInward: true, notBefore: Environment.TickCount64 + 200);
+        UpdatePolling();
+        if (wasBlocked != blocked) NotifyChanged();
+    }
+    private void UpdatePolling() => pump.PollEvery(connection?.IsAlive == true && !fullscreenBlocked ? 16u : 0u);
+    public void Disconnect() { pump.Invoke(() => { ReturnCore(); connection = null; foreground?.Stop(); ForegroundChanged(); }); }
+    private void PollEdge()
+    {
+        edgeSamples++;
+        var current = connection;
+        if (current?.IsAlive != true) { ReturnCore(); foreground?.Stop(); ForegroundChanged(); return; }
+        if (FullscreenBlocked) return;
+        if (Active || !Desktop.GetCursorPos(out var point)) return;
+        bool atEdge = Side == "left" ? point.X <= pcBounds.Left : point.X >= pcBounds.Right - 1;
+        bool blocked = physicalKeys.Count != 0 || (atEdge && ButtonHeld());
+        if (!edge.Observe(point, pcBounds, Side, blocked, Environment.TickCount64)) return;
+        // Close the asynchronous focus-notification race only at an attempted edge
+        // crossing. No foreground/window inspection in the ordinary 16 ms loop.
+        foreground?.Refresh();
+        if (FullscreenBlocked) return;
+        epoch = unchecked(epoch + 1); x = Side == "left" ? current.MacWidth - 2 : 1;
+        y = Math.Clamp((point.Y - pcBounds.Top) / (double)pcBounds.Height * current.MacHeight, 0, current.MacHeight - 1);
+        if (!current.Command(new { type = "enter", epoch, x, y })) return;
+        mouseHook = Native.SetWindowsHookEx(14, mouseCallback, Native.GetModuleHandle(null), 0);
+        if (mouseHook == 0 || !RegisterRaw()) {
+            RemoveMouseHook(); current.Command(new { type = "leave", epoch }); return;
+        }
+        // Guard the small interval between the sampled crossing and hook install.
+        if (physicalKeys.Count != 0 || ButtonHeld()) {
+            UnregisterRaw(); RemoveMouseHook(); current.Command(new { type = "leave", epoch }); return;
+        }
+        var clip = new Native.Rect { Left = pcBounds.Left + pcBounds.Width / 2, Top = pcBounds.Top + pcBounds.Height / 2 };
+        clip.Right = clip.Left + 1; clip.Bottom = clip.Top + 1;
+        if (!Native.ClipCursor(ref clip)) {
+            UnregisterRaw(); RemoveMouseHook(); current.Command(new { type = "leave", epoch }); return;
+        }
+        active = true;
+        timerResolution = Native.timeBeginPeriod(1) == 0;
+        Desktop.ShowCursor(false); NotifyChanged();
+    }
     private void NotifyChanged()
     {
         try { dispatch(() => Changed?.Invoke()); }
@@ -76,33 +141,11 @@ internal sealed class Input : IDisposable
     private unsafe nint Mouse(int code, nint message, nint pointer)
     {
         if (code < 0) return Native.CallNextHookEx(mouseHook, code, message, pointer);
-        if (!Active && connection == null) return Native.CallNextHookEx(mouseHook, code, message, pointer);
+        if (!Active) return Native.CallNextHookEx(mouseHook, code, message, pointer);
         var data = *(Native.MouseData*)pointer;
         if ((data.Flags & 1) != 0) return Native.CallNextHookEx(mouseHook, code, message, pointer);
         var current = connection;
         if (Active && current?.IsAlive != true) ReturnCore();
-        if (!Active && current != null && message == 0x200)
-        {
-            bool inward = Side == "left" ? data.Point.X > pcBounds.Left + 5 : data.Point.X < pcBounds.Right - 6;
-            if (inward) inwardRequired = false;
-            bool atEdge = Side == "left" ? data.Point.X <= pcBounds.Left : data.Point.X >= pcBounds.Right - 1;
-            bool inHeight = data.Point.Y >= pcBounds.Top && data.Point.Y < pcBounds.Bottom;
-            // Button state syscalls are only needed for an actual edge crossing.
-            if (atEdge && inHeight && physicalKeys.Count == 0 && !inwardRequired && Environment.TickCount64 >= rearmAt && !ButtonHeld())
-            {
-                epoch = unchecked(epoch + 1); x = Side == "left" ? current.MacWidth - 2 : 1;
-                y = Math.Clamp((data.Point.Y - pcBounds.Top) / (double)pcBounds.Height * current.MacHeight, 0, current.MacHeight - 1);
-                if (!current.Command(new { type = "enter", epoch, x, y })) return Native.CallNextHookEx(mouseHook, code, message, pointer);
-                if (!RegisterRaw()) { current.Command(new { type = "leave", epoch }); return Native.CallNextHookEx(mouseHook, code, message, pointer); }
-                active = true;
-                var clip = new Native.Rect { Left = pcBounds.Left + pcBounds.Width / 2, Top = pcBounds.Top + pcBounds.Height / 2 };
-                clip.Right = clip.Left + 1; clip.Bottom = clip.Top + 1;
-                if (!Native.ClipCursor(ref clip)) { ReturnCore(); return Native.CallNextHookEx(mouseHook, code, message, pointer); }
-                timerResolution = Native.timeBeginPeriod(1) == 0;
-                Desktop.ShowCursor(false); NotifyChanged();
-                return 1;
-            }
-        }
         if (!Active || current == null) return Native.CallNextHookEx(mouseHook, code, message, pointer);
         int button = (int)message switch { 0x201 or 0x202 => 0, 0x204 or 0x205 => 1, 0x207 or 0x208 => 2, 0x20B or 0x20C => (data.Data >> 16) == 1 ? 3 : 4, _ => -1 };
         if (button >= 0)
@@ -145,19 +188,42 @@ internal sealed class Input : IDisposable
         if (!Active) return;
         connection?.Command(new { type = "leave", epoch }); active = false;
         UnregisterRaw();
+        RemoveMouseHook();
         if (timerResolution) { Native.timeEndPeriod(1); timerResolution = false; }
         Native.ClipCursor(0); Desktop.ShowCursor(true);
         var current = connection;
         int pcY = current == null ? pcBounds.Top + pcBounds.Height / 2 : pcBounds.Top + (int)(y / current.MacHeight * pcBounds.Height);
-        Native.SetCursorPos(Side == "left" ? pcBounds.Left + 3 : pcBounds.Right - 4, Math.Clamp(pcY, pcBounds.Top, pcBounds.Bottom - 1));
-        rearmAt = Environment.TickCount64 + 200; inwardRequired = true; NotifyChanged();
+        var point = new Native.Point { X = Side == "left" ? pcBounds.Left + 3 : pcBounds.Right - 4, Y = Math.Clamp(pcY, pcBounds.Top, pcBounds.Bottom - 1) };
+        Native.SetCursorPos(point.X, point.Y);
+        edge.Reset(point, requireInward: true, notBefore: Environment.TickCount64 + 200); NotifyChanged();
+    }
+    private void RemoveMouseHook()
+    {
+        if (mouseHook != 0) { Native.UnhookWindowsHookEx(mouseHook); mouseHook = 0; }
     }
     internal Task<int> ProbeThread() => pump.Query(() => Environment.CurrentManagedThreadId);
+    internal Task<(bool MouseHook, bool Raw, bool Polling)> ProbeState() => pump.Query(() => (mouseHook != 0, rawRegistered, pump.Polling));
+    internal Task<(bool Registered, bool Blocked, long Refreshes)> ProbeForeground() => pump.Query(() => (foreground?.Registered == true, fullscreenBlocked, foreground?.Refreshes ?? 0));
+    // Diagnostics use unreachable transfer bounds and independently watch a real
+    // fixture screen, so they exercise foreground events without capturing input.
+    internal void ProbeProtectionScreen(Rectangle bounds) => pump.Invoke(() => {
+        foreground!.Start(bounds); ForegroundChanged();
+    });
+    internal Task<(long Samples, long Refreshes, long CpuTicks)> ProbeSampling() => pump.Query(() => {
+        if(!Native.GetThreadTimes(new nint(-2),out _,out _,out long kernel,out long user))throw new System.ComponentModel.Win32Exception();
+        return (edgeSamples,foreground?.Refreshes ?? 0,kernel+user);
+    });
+    internal Task<bool> ProbeMouseHookCycle() => pump.Query(() => {
+        if (Active || mouseHook != 0) throw new InvalidOperationException("Mouse capture already active.");
+        mouseHook = Native.SetWindowsHookEx(14, mouseCallback, Native.GetModuleHandle(null), 0);
+        bool installed = mouseHook != 0; RemoveMouseHook(); return installed && mouseHook == 0;
+    });
     private void Cleanup()
     {
+        foreground?.Dispose();
         ReturnCore(); UnregisterRaw();
         if (keyboardHook != 0) { Native.UnhookWindowsHookEx(keyboardHook); keyboardHook = 0; }
-        if (mouseHook != 0) { Native.UnhookWindowsHookEx(mouseHook); mouseHook = 0; }
+        RemoveMouseHook();
         if (rawMemory != 0) { Marshal.FreeHGlobal(rawMemory); rawMemory = 0; }
     }
     public void Dispose() { pump.Dispose(); }

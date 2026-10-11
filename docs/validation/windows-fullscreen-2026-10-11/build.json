@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "bd1ffc09283ea0ba2b645ba8c78afb2a80759b63",
+  "version": "0.3.4+bd1ffc09283ea0ba2b645ba8c78afb2a80759b63",
+  "sha256": "dc2af50a05bdbc8e95eee031d8410278ab32bd97872c20bd6ee9f2d05a0dde2e",
+  "bytes": 234444847,
+  "nativeInput": 12,
+  "nativeFullscreen": 8,
+  "nativeLayoutCases": 108,
+  "nativeTray": 8,
+  "dotnetChecks": 39,
+  "framework": "WinUI 3",
+  "sdk": "10.0.401",
+  "os": "Windows 11 Pro 25H2 build 26200.9457",
+  "dpi": 96,
+  "hardwareGameValidation": "pending"
+}
