@@ -53,6 +53,11 @@ internal static class InputChecks
                 input.SetFullscreenProtection(true);
                 if(!input.ProbeForeground().GetAwaiter().GetResult().Registered)throw new Exception("Fullscreen watcher did not restart.");
                 results.Add(new { check = "native foreground hooks register, disable and restart without PC-side mouse capture", pass = true });
+                long inspections=input.ProbeForeground().GetAwaiter().GetResult().Refreshes;
+                for(int i=0;i<10;i++)input.SetFullscreenProtection(true);
+                if(input.ProbeForeground().GetAwaiter().GetResult().Refreshes!=inspections)
+                    throw new Exception("Unchanged fullscreen setting restarts the watcher.");
+                results.Add(new { check = "unchanged fullscreen setting preserves the current event watcher", pass = true });
                 for (int i = 0; i < 5; i++) if (!input.ProbeMouseHookCycle().GetAwaiter().GetResult())
                     throw new Exception("Native mouse hook install/remove failed.");
                 if (input.ProbeState().GetAwaiter().GetResult().MouseHook) throw new Exception("Mouse hook leaked after capture lifecycle probes.");
@@ -81,6 +86,8 @@ internal static class InputChecks
             }
             if(cleaned!=5)throw new Exception("Win32 pump did not clean up on every restart.");
             results.Add(new {check="1000 queued Win32 probes and five clean pump restarts",pass=true});
+            CheckPumpShutdown();
+            results.Add(new {check="concurrent query publication and shutdown complete or reject every query",pass=true});
             using (var tick = new ManualResetEventSlim()) {
                 using var pollPump = new InputPump(() => { }, () => { }, _ => { }, () => tick.Set());
                 pollPump.Invoke(() => pollPump.PollEvery(16));
@@ -89,6 +96,13 @@ internal static class InputChecks
                 if (tick.Wait(80)) throw new Exception("Disabled edge timer still invokes polling callback.");
             }
             results.Add(new { check = "native WM_TIMER starts and stops on input pump", pass = true });
+            int ticks=0;
+            using(var pollPump=new InputPump(()=>{},()=>{},_=>{},()=>Interlocked.Increment(ref ticks))) {
+                pollPump.Invoke(()=>pollPump.PollEvery(80));
+                for(int i=0;i<30;i++) {Thread.Sleep(10);pollPump.Invoke(()=>pollPump.PollEvery(80));}
+                if(Volatile.Read(ref ticks)==0)throw new Exception("Repeated timer configuration starves native WM_TIMER.");
+            }
+            results.Add(new {check="unchanged timer interval keeps native polling progressing",pass=true});
             CheckEdges();
             results.Add(new { check = "sampled edge crossings: both sides, held input, height, parked cursor, cooldown and inward rearm", pass = true });
             CheckFullscreenPolicy();
@@ -98,6 +112,34 @@ internal static class InputChecks
         } catch (Exception error) {
             File.WriteAllText(report, JsonSerializer.Serialize(new { passed = false, results, error = error.ToString() }, new JsonSerializerOptions { WriteIndented = true }));
             return 1;
+        }
+    }
+    private static void CheckPumpShutdown()
+    {
+        for(int cycle=0;cycle<10;cycle++) {
+            using var entered=new ManualResetEventSlim();
+            using var release=new ManualResetEventSlim();
+            using var race=new ManualResetEventSlim();
+            using var pump=new InputPump(()=>{},()=>{},_=>{});
+            var queries=new List<Task<int>> {pump.Query(()=>{entered.Set();release.Wait();return 7;})};
+            if(!entered.Wait(5000))throw new Exception("Shutdown fixture did not reach input thread.");
+            queries.AddRange(Enumerable.Range(0,32).Select(_=>pump.Query(()=>7)));
+            var producer=new Thread(()=>{race.Wait();for(int i=0;i<128;i++)queries.Add(pump.Query(()=>7));});
+            var closer=new Thread(()=>{race.Wait();pump.Dispose();});
+            producer.Start();closer.Start();race.Set();
+            bool published;
+            try {published=producer.Join(5000);}
+            finally {release.Set();}
+            if(!closer.Join(5000)||!published)throw new Exception("Concurrent pump shutdown stalled.");
+            if(!SpinWait.SpinUntil(()=>queries.All(query=>query.IsCompleted),5000))
+                throw new Exception("Shutdown left an accepted query without completion.");
+            foreach(var query in queries) {
+                if(query.IsCompletedSuccessfully) {if(query.Result!=7)throw new Exception("Shutdown query result changed.");}
+                else if(query.Exception?.GetBaseException() is not ObjectDisposedException)
+                    throw new Exception("Shutdown query failed unexpectedly.",query.Exception);
+            }
+            if(pump.Query(()=>7).Exception?.GetBaseException() is not ObjectDisposedException)
+                throw new Exception("Disposed pump accepted another query.");
         }
     }
     private static void CheckEdges()

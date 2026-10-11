@@ -7,6 +7,7 @@ internal sealed class InputPump:IDisposable
 {
     private const uint WorkMessage=0x8001,ExitMessage=0x8002;
     private readonly ConcurrentQueue<Action> work=new();
+    private readonly object lifecycle=new();
     private readonly Thread thread;
     private readonly Action<nint> raw;
     private readonly Action install,cleanup;
@@ -15,8 +16,9 @@ internal sealed class InputPump:IDisposable
     private Exception? startupError;
     private NativeMessageWindow? window;
     private int threadId,disposed;
+    private uint pollInterval;
     public nint Handle=>window?.Handle??0;
-    public bool Polling {get;private set;}
+    public bool Polling=>pollInterval!=0;
     public InputPump(Action install,Action cleanup,Action<nint> raw,Action? poll=null) {
         this.install=install; this.cleanup=cleanup; this.raw=raw; this.poll=poll;
         thread=new Thread(Run) {IsBackground=true,Name="EdgeLink input",Priority=ThreadPriority.AboveNormal};
@@ -42,28 +44,41 @@ internal sealed class InputPump:IDisposable
     }
     // Called on this pump's thread; ordinary WM_TIMER, no high-resolution timer.
     public void PollEvery(uint milliseconds) {
-        if(milliseconds==0) {if(Polling)Native.KillTimer(Handle,1);Polling=false;return;}
+        if(milliseconds==pollInterval)return;
+        if(milliseconds==0) {Native.KillTimer(Handle,1);pollInterval=0;return;}
         if(poll==null)throw new InvalidOperationException("No input poll callback.");
         if(Native.SetTimer(Handle,1,milliseconds,0)==0)throw new System.ComponentModel.Win32Exception();
-        Polling=true;
+        pollInterval=milliseconds;
     }
     public Task<T> Query<T>(Func<T> action) {
-        if(Environment.CurrentManagedThreadId==threadId)return Task.FromResult(action());
+        if(Environment.CurrentManagedThreadId==threadId) {
+            if(Volatile.Read(ref disposed)!=0)return Task.FromException<T>(new ObjectDisposedException(nameof(InputPump)));
+            return Task.FromResult(action());
+        }
         var result=new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if(Volatile.Read(ref disposed)!=0)return Task.FromException<T>(new ObjectDisposedException(nameof(InputPump)));
-        work.Enqueue(()=> {try {result.TrySetResult(action());}catch(Exception error){result.TrySetException(error);}});
-        if(!Desktop.PostMessage(Handle,WorkMessage,0,0))result.TrySetException(new System.ComponentModel.Win32Exception());
+        lock(lifecycle) {
+            if(disposed!=0)return Task.FromException<T>(new ObjectDisposedException(nameof(InputPump)));
+            work.Enqueue(()=> {try {result.TrySetResult(action());}catch(Exception error){result.TrySetException(error);}});
+            if(!Desktop.PostMessage(Handle,WorkMessage,0,0))result.TrySetException(new System.ComponentModel.Win32Exception());
+        }
         return result.Task;
     }
     public void Post(Action action) {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed)!=0,this);
-        work.Enqueue(action);
-        if(!Desktop.PostMessage(Handle,WorkMessage,0,0))throw new System.ComponentModel.Win32Exception();
+        lock(lifecycle) {
+            ObjectDisposedException.ThrowIf(disposed!=0,this);
+            work.Enqueue(action);
+            if(!Desktop.PostMessage(Handle,WorkMessage,0,0))throw new System.ComponentModel.Win32Exception();
+        }
     }
     public void Invoke(Action action)=>Query(()=> {action();return true;}).GetAwaiter().GetResult();
     public void Dispose() {
-        if(Interlocked.Exchange(ref disposed,1)!=0)return;
-        Desktop.PostMessage(Handle,ExitMessage,0,0);
+        // Serialize publication with exit so every accepted query precedes ExitMessage.
+        // Never hold this gate while joining the input thread or executing callbacks.
+        lock(lifecycle) {
+            if(disposed!=0)return;
+            Volatile.Write(ref disposed,1);
+            Desktop.PostMessage(Handle,ExitMessage,0,0);
+        }
         if(Environment.CurrentManagedThreadId!=threadId)thread.Join();ready.Dispose();
     }
 }

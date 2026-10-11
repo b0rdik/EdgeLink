@@ -64,7 +64,6 @@ public sealed partial class MainWindow:Window
     private readonly string configPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"EdgeLink","settings.json");
     private readonly bool previewMode;
     internal bool IsDisposed {get;private set;}
-    private bool Disposing=>IsDisposed;
     internal nint Handle {get;}
 
     internal MainWindow(bool previewMode=false,bool trayCheck=false) {
@@ -110,7 +109,7 @@ public sealed partial class MainWindow:Window
         if(previewMode)return;
         try{input=new Input(BeginInvoke);input.SetFullscreenProtection(protectFullscreen.CheckedValue);input.Changed+=UpdateStatus;}catch(Exception e){status.Text=e.Message;connect.IsEnabled=false;}
         SingleInstance.StartServer(this,updateCancellation.Token);RegisterPairingType();_ = CheckUpdates(false);
-        reconnectTimer.Start();refresh.Start();
+        reconnectTimer.Start();
         string[] args=Program.Arguments;
         if(args.Length>=3&&args[1]=="--pair")await ImportPairing(args[2],setupComplete);else await TryReconnect();
     }
@@ -119,6 +118,11 @@ public sealed partial class MainWindow:Window
         if(link==null)return;long bytes=Interlocked.Read(ref link.AudioBytes),packets=Interlocked.Read(ref link.AudioPackets);
         if(Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle))stats.Text=$"RTT: {link.RoundTripMs} мс · звук: {(bytes-lastBytes)*8/Math.Max(seconds,.001)/1_000_000:F2} Мбит/с (IPv4)\nБуфер: {link.Audio.BufferedMs:F1} мс · запас: {link.Audio.TargetMs:F1} мс · прерывания: {link.Audio.Underruns} · пакеты: {packets}";
         lastBytes=bytes;
+    }
+    private void UpdateStatsTimer() {
+        bool needed=!IsDisposed&&link!=null&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
+        if(needed&&!refresh.IsRunning)refresh.Start();
+        else if(!needed&&refresh.IsRunning)refresh.Stop();
     }
     private async Task<bool> ConfirmUpdate(ReleaseUpdate update) {
         var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает обновление из b0rdik/EdgeLink, проверит SHA-256 и перезапустится. Предыдущая версия сохранится рядом с приложением.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=ElementTheme.Dark};

@@ -54,7 +54,7 @@ public sealed partial class MainWindow
             navigationItems.Add(item);navigation.MenuItems.Add(item);
         }
         // Keep the navigation strip independent of page measurement and scrolling.
-        // Let the native selection animation start before building the next page's layout.
+        // Start the compositor indicator before building the next page's layout.
         navigation.Resources["NavigationViewContentBackground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         // Replace the built-in stretching indicator with one fixed-width compositor visual.
         navigation.Resources["NavigationViewSelectionIndicatorForeground"]=new SolidColorBrush(Microsoft.UI.Colors.Transparent);

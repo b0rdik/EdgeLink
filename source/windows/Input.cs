@@ -50,19 +50,20 @@ internal sealed class Input : IDisposable
         pump.Invoke(() => {
             ReturnCore(); this.connection = connection; pcBounds = bounds; Side = side; SwapControlCommand = swap; Gain = gain;
             Desktop.GetCursorPos(out var point); edge.Reset(point);
-            ConfigureForeground(); UpdatePolling();
+            ConfigureForeground();
         });
     }
     public void SetFullscreenProtection(bool enabled) => pump.Invoke(() => {
-        fullscreenProtection = enabled; ConfigureForeground(); UpdatePolling();
+        if(fullscreenProtection==enabled)return;
+        fullscreenProtection = enabled; ConfigureForeground();
     });
     private void ConfigureForeground()
     {
-        foreground?.Stop();
         if (fullscreenProtection && connection?.IsAlive == true) {
             foreground ??= new ForegroundGuard(pump.Post, ForegroundChanged);
             foreground.Start(pcBounds);
         }
+        else foreground?.Stop();
         ForegroundChanged();
     }
     private void ForegroundChanged()

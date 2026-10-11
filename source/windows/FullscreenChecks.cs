@@ -22,12 +22,14 @@ internal static class FullscreenChecks
             var unreachable=new Rectangle(100000,100000,1000,1000);
             input.Configure(link,unreachable,"left",true,1);
             input.ProbeProtectionScreen(screen);
-            window.Activate(); await WaitFor(input,false);
+            // A background launcher may not have permission to take foreground.
+            // Allow activation of the fixture, then require its actual focus.
+            window.Activate(); await WaitFor(input,false,window.Handle,15000);
             results.Add(new {check="ordinary foreground window keeps edge polling and no mouse hook/raw capture",pass=true});
             var ordinary=await Measure(input,1000);
             if(ordinary.samples<10)throw new Exception("Ordinary foreground did not sample the edge.");
             window.AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
-            await WaitFor(input,true);
+            await WaitFor(input,true,window.Handle);
             if(!ForegroundGuard.IsFullscreen(window.Handle,screen))throw new Exception("Native borderless fixture was not fullscreen.");
             results.Add(new {check="real borderless fullscreen foreground disables edge timer without mouse capture",pass=true});
             var blocked=await Measure(input,1000);
@@ -37,17 +39,17 @@ internal static class FullscreenChecks
                 var watch=Stopwatch.StartNew();input.ProbeThread().GetAwaiter().GetResult();
                 if(watch.ElapsedMilliseconds>150)throw new Exception("Input pump stalled in fullscreen.");
             });
-            input.SetFullscreenProtection(false); await WaitFor(input,false);
+            input.SetFullscreenProtection(false); await WaitFor(input,false,window.Handle);
             if((await input.ProbeForeground()).Registered)throw new Exception("Disabled protection keeps native foreground hooks.");
-            input.SetFullscreenProtection(true); input.ProbeProtectionScreen(screen); await WaitFor(input,true);
+            input.SetFullscreenProtection(true); input.ProbeProtectionScreen(screen); await WaitFor(input,true,window.Handle);
             results.Add(new {check="live protection toggle unregisters events/resumes polling and re-enabling pauses again",pass=true});
             other=new Window {Title="EdgeLink — проверка смены окна",Content=new TextBlock {Text="Проверка автоматического восстановления переходов",Margin=new Thickness(24)}};
-            other.Activate(); await WaitFor(input,false);
+            other.Activate(); await WaitFor(input,false,WinRT.Interop.WindowNative.GetWindowHandle(other));
             results.Add(new {check="focus switch from fullscreen to ordinary second window automatically resumes polling",pass=true});
-            window.Activate(); await WaitFor(input,true);
+            window.Activate(); await WaitFor(input,true,window.Handle);
             results.Add(new {check="returning focus to the fullscreen fixture pauses polling again",pass=true});
             window.AppWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
-            await WaitFor(input,false);
+            await WaitFor(input,false,window.Handle);
             results.Add(new {check="foreground window leaves fullscreen without changing focus; geometry event resumes polling",pass=true});
             input.Disconnect();
             var stopped=await input.ProbeForeground();var state=await input.ProbeState();
@@ -59,16 +61,20 @@ internal static class FullscreenChecks
             File.WriteAllText(report,JsonSerializer.Serialize(new {passed=false,results,error=error.ToString()},new JsonSerializerOptions {WriteIndented=true}));return 1;
         } finally {other?.Close();}
     }
-    private static async Task WaitFor(Input input,bool blocked)
+    private static async Task WaitFor(Input input,bool blocked,nint expectedWindow,int timeoutMs=3000)
     {
         var watch=Stopwatch.StartNew();
-        while(watch.ElapsedMilliseconds<3000) {
+        while(watch.ElapsedMilliseconds<timeoutMs) {
             var focus=await input.ProbeForeground(); var state=await input.ProbeState();
             if(state.MouseHook||state.Raw)throw new Exception("Native fixture captured physical input.");
-            if(focus.Blocked==blocked&&state.Polling!=blocked)return;
+            if(Native.GetForegroundWindow()==expectedWindow&&focus.Blocked==blocked&&state.Polling!=blocked)return;
             await Task.Delay(20);
         }
-        throw new Exception("Foreground protection did not reach expected state: blocked="+blocked);
+        var lastFocus=await input.ProbeForeground();var lastState=await input.ProbeState();
+        bool foregroundFullscreen=ForegroundGuard.IsFullscreen(Native.GetForegroundWindow(),Desktop.PrimaryScreen.Bounds);
+        bool foregroundMatches=Native.GetForegroundWindow()==expectedWindow;
+        bool fixtureFullscreen=ForegroundGuard.IsFullscreen(expectedWindow,Desktop.PrimaryScreen.Bounds);
+        throw new Exception($"Foreground protection did not reach expected state: blocked={blocked}; registered={lastFocus.Registered}; actualBlocked={lastFocus.Blocked}; polling={lastState.Polling}; refreshes={lastFocus.Refreshes}; foregroundMatches={foregroundMatches}; foregroundFullscreen={foregroundFullscreen}; fixtureFullscreen={fixtureFullscreen}");
     }
     private sealed record Sample(double elapsedMs,long samples,long foregroundRefreshes,double inputThreadCpuMs);
     private static async Task<Sample> Measure(Input input,int milliseconds)

@@ -1,5 +1,3 @@
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Text.Json;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -116,7 +114,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             {
                 status.Text = "Ищем ваш Mac по Ethernet…";
                 var found = await Discovery.Find(pairing.Password, updateCancellation.Token);
-                if (IsDisposed || Disposing) throw new OperationCanceledException();
+                if (IsDisposed) throw new OperationCanceledException();
                 if (found == null) throw new IOException("Mac пока не найден. Проверьте кабель, разрешения Mac и firewall Windows.");
                 local.Text = found.LocalIP; remote.Text = found.MacIP;
             }
@@ -125,7 +123,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             connectingLink = candidate;
             candidate.Failed += error => { if (!IsDisposed) BeginInvoke(() => { if (ReferenceEquals(link, candidate)) { lastError = error; Disconnect(); } }); };
             await candidate.Connect(local.Text.Trim(), remote.Text.Trim(), pairing.Password);
-            if (IsDisposed || Disposing) throw new OperationCanceledException();
+            if (IsDisposed) throw new OperationCanceledException();
             using var enumerator = new MMDeviceEnumerator();
             string id = devices[device.SelectedIndex].id;
             endpoint = id == "" ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(id);
@@ -137,7 +135,8 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             link = candidate;
             connectingLink = null;
             input.Configure(candidate, Desktop.Screens[screen.SelectedIndex].Bounds, side.SelectedIndex == 0 ? "left" : "right", swap.CheckedValue, (double)gain.Value);
-            lastBytes = 0; connect.Text = "Отключить"; SaveSettings(); SetFields(false); UpdateStatus();
+            lastBytes = 0; lastRefresh=Stopwatch.GetTimestamp(); UpdateStatsTimer();
+            connect.Text = "Отключить"; SaveSettings(); SetFields(false); UpdateStatus();
             if (reconnect.CheckedValue) CredentialStore.Save(pairing.Password);
         }
         catch (Exception e) { candidate?.Dispose(); connectingLink = null; if (!IsDisposed) { lastError = "Не удалось подключиться: " + e.Message; Disconnect(); } }
@@ -146,6 +145,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     private void Disconnect()
     {
         input?.Disconnect(); var old = link; link = null; old?.Dispose();
+        UpdateStatsTimer();
         connectingLink?.Dispose(); connectingLink = null;
         output?.Stop(); output?.Dispose(); output = null; endpoint?.Dispose(); endpoint = null;
         if (!IsDisposed) { connect.Text = "Подключить"; SetFields(true); UpdateStatus(); }
