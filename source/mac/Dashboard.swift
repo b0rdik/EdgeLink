@@ -8,6 +8,9 @@ final class DashboardState: ObservableObject {
     @Published var autoStart = UserDefaults.standard.object(forKey: "autoStart") as? Bool ?? true
     @Published var muteMac = UserDefaults.standard.object(forKey: "muteMac") as? Bool ?? true
     @Published var audioHint = "Динамики Mac работают обычно."
+    @Published var keepAwakeEnabled = UserDefaults.standard.object(forKey: "keepAwake") as? Bool ?? true
+    @Published var keepAwakeActive = false
+    @Published var keepAwakeHint = "Mac и экран не засыпают, пока EdgeLink запущен."
     @Published var ethernet: [EthernetAddress] = []
     @Published var selectedEthernet = ""
     @Published var displays: [(UInt32, String)] = []
@@ -32,6 +35,7 @@ final class DashboardState: ObservableObject {
     @Published var step = 0
     var onInput: () -> Void = {}, onAudio: () -> Void = {}, onCopy: () -> Void = {}, onExport: () -> Void = {}, onToggle: () -> Void = {}, onUpdate: () -> Void = {}, onRefresh: () -> Void = {}, onCheck: () -> Void = {}, onRepair: () -> Void = {}, onRestart: () -> Void = {}, onRetryKey: () -> Void = {}
     var onMuteChange: () -> Void = {}
+    var onKeepAwakeChange: (Bool) -> Void = { _ in }
     var stateTitle: String { controlled ? "Управление на Mac" : connected ? "Всё подключено" : running ? "Mac ждёт ваш ПК" : "Давайте подключимся" }
     var ready: Bool { inputAllowed && audioAllowed && pairingAvailable && !localIP.isEmpty }
     var canContinue: Bool { step == 0 ? !localIP.isEmpty : step == 1 ? inputAllowed && audioAllowed : step == 2 ? pairingExported || connected : true }
@@ -99,8 +103,23 @@ struct Dashboard: View {
                     Text(state.audioHint).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.frame(minWidth: 0, maxWidth: .infinity, alignment: .leading).card()
             }
+            keepAwakeControl
             updates
         }
+    }
+    private var keepAwakeControl: some View {
+        HStack(spacing: 14) {
+            Image(systemName: state.keepAwakeActive ? "cup.and.saucer.fill" : "cup.and.saucer")
+                .font(.system(size: 23)).foregroundStyle(state.keepAwakeActive ? mint : .secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Keep Awake").font(.system(size: 13, weight: .semibold))
+                Text(state.keepAwakeHint).font(.system(size: 11)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 12)
+            Toggle("Keep Awake", isOn: Binding(get: { state.keepAwakeEnabled }, set: state.onKeepAwakeChange))
+                .toggleStyle(.switch).labelsHidden().accessibilityLabel("Keep Awake — не давать Mac уснуть")
+        }.card()
     }
     private var connection: some View {
         VStack(alignment: .leading, spacing: 18) {

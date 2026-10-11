@@ -3,6 +3,7 @@ import SwiftUI
 import ApplicationServices
 import Security
 import CryptoKit
+import IOKit.pwr_mgt
 
 enum PairingSecret {
     static func load() throws -> Data {
@@ -38,6 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let preview = CommandLine.arguments.contains("--preview") || CommandLine.arguments.contains("--preview-export")
     private var item: NSStatusItem!
     private var window: NSWindow!
+    private var keepAwakeMenuItem: NSMenuItem!
+    private let keepAwake = KeepAwake()
     private var availableUpdate: ReleaseUpdate?
     private var updating = false { didSet { state.updating = updating } }
     private var updateTask: Task<Void, Never>?
@@ -56,6 +59,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Настройки…", action: #selector(show), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Остановить связь", action: #selector(stopLink), keyEquivalent: "").target = self
+        keepAwakeMenuItem = menu.addItem(withTitle: "Keep Awake — не давать Mac уснуть", action: #selector(toggleKeepAwake), keyEquivalent: "")
+        keepAwakeMenuItem.target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Завершить EdgeLink", action: #selector(quit), keyEquivalent: "q").target = self
         item.menu = menu
@@ -64,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenu(); main.addItem(appRoot); NSApp.mainMenu = main
         configureActions(); buildWindow()
         if preview { renderPreview(); return }
+        applyKeepAwake(state.keepAwakeEnabled)
         outputMute.recover()
         show()
         loadPairingSecret()
@@ -87,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     private func configureActions() {
         state.onMuteChange = { [weak self] in self?.refreshOutputMute() }
+        state.onKeepAwakeChange = { [weak self] enabled in self?.applyKeepAwake(enabled) }
         state.onInput = { [weak self] in self?.requestInput() }
         state.onAudio = { [weak self] in self?.requestAudio() }
         state.onCopy = { [weak self] in self?.copyKey() }
@@ -104,6 +111,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         outputMute.update(connected: server.currentSession != nil, enabled: state.muteMac)
         state.audioHint = outputMute.hint
     }
+    private func applyKeepAwake(_ enabled: Bool) {
+        state.keepAwakeEnabled = enabled
+        guard !preview else { return }
+        UserDefaults.standard.set(enabled, forKey: "keepAwake")
+        let result = keepAwake.setEnabled(enabled)
+        state.keepAwakeActive = keepAwake.isActive
+        keepAwakeMenuItem.state = keepAwake.isActive ? .on : .off
+        if result != kIOReturnSuccess {
+            state.keepAwakeHint = "Не удалось изменить режим сна (\(result)). Попробуйте переключить Keep Awake ещё раз."
+        } else {
+            state.keepAwakeHint = enabled ? "Mac и экран не засыпают, пока EdgeLink запущен, даже без подключения к ПК." : "Mac и экран засыпают по обычным настройкам."
+        }
+    }
+    @objc private func toggleKeepAwake() { applyKeepAwake(!state.keepAwakeEnabled) }
     private func buildWindow() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: min(720, max(630, (NSScreen.main?.visibleFrame.height ?? 850) - 70))), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "EdgeLink"; window.titlebarAppearsTransparent = true
@@ -319,7 +340,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc private func resumeLink() { retryAfter = Date(); refreshSetup() }
     @objc private func quit() { outputMute.restore(); server.stop(); discovery.stop(); NSApp.terminate(nil) }
-    func applicationWillTerminate(_ notification: Notification) { outputMute.restore(); updateTask?.cancel(); monitor?.invalidate(); server.stop(); discovery.stop() }
+    func applicationWillTerminate(_ notification: Notification) { keepAwake.setEnabled(false); outputMute.restore(); updateTask?.cancel(); monitor?.invalidate(); server.stop(); discovery.stop() }
 }
 
 let app = NSApplication.shared
