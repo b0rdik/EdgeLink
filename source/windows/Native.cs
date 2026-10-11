@@ -22,6 +22,8 @@ internal static class Native
     [DllImport("user32")] public static extern bool ClipCursor(ref Rect rect);
     [DllImport("user32")] public static extern bool ClipCursor(nint rect);
     [DllImport("user32")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32", SetLastError = true)] public static extern nuint SetTimer(nint window, nuint id, uint milliseconds, nint callback);
+    [DllImport("user32")] public static extern bool KillTimer(nint window, nuint id);
     [DllImport("winmm")] public static extern uint timeBeginPeriod(uint period);
     [DllImport("winmm")] public static extern uint timeEndPeriod(uint period);
 }

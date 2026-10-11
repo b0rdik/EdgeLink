@@ -1,4 +1,12 @@
-EdgeLink 0.3.4 — Windows input processing performance
+EdgeLink 0.3.4 working branch — PC-side mouse hook removal, 2026-10-11
+
+Windows code now samples cursor position with an ordinary 16 ms Win32 timer on the input thread while connected. No WH_MOUSE_LL or Raw Input is enabled while controlling the PC; mouse capture is installed only for Mac control and removed on return. Keyboard interception, protocol and audio are unchanged. The transition timer has no strict maximum latency under load.
+PASS: preliminary Windows self-contained win-x64 publish with TreatWarningsAsErrors, no warnings.
+PASS: preliminary native --input-checks on the physical Windows PC: 10/10, including configured/disconnected/lost-link state, five real hook install/remove cycles, timer start/stop, edge gating and UI-stall response.
+PASS: .NET checks --ui-loop-check: 39 PASS, including encrypted loopback progress during a 500 ms UI stall.
+Final installed-build native results and physical 4000 Hz comparison belong in docs/HANDOFF-WINDOWS.md. Compilation and state tests do not verify physical transfers, held keys/buttons, emergency return or sensor-to-display latency.
+
+History: original EdgeLink 0.3.4 — Windows input processing performance
 
 PASS: Windows self-contained win-x64 single-file publish with TreatWarningsAsErrors; no build warnings. Native PE resource version checked by release packager.
 PASS: Mac arm64 0.3.4 build with the same signing identity; macOS implementation unchanged. Installed Mac 0.3.3 and its live Ethernet connection were left running; privacy permissions were not modified.
