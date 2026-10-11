@@ -1,0 +1,75 @@
+Mac 1.0.0: source/run-checks.sh, exit 0. EDGELINK_SKIP_DISCOVERY_CHECK=1.
+UDP discovery skipped to preserve the active installation.
+PASS: AES-GCM roundtrip / Unicode
+PASS: AES-256-GCM known empty vector
+PASS: ciphertext tampering rejected
+PASS: wrong pairing key rejected
+PASS: oversized control frames rejected before allocation
+PASS: mouse wire format
+PASS: 64-bit Windows input structure ABI used by allocation-free callbacks
+PASS: idle mouse sender sleeps until actual movement
+PASS: disconnect cancels sleeping mouse sender
+Mouse publishing allocation measurement: 128 bytes for 100000 movements
+PASS: 100000 high-rate movements coalesce to the latest position and sequence
+PASS: high-rate movement publishing avoids per-event allocations
+PASS: mouse mailbox retains no backlog after consumption
+PASS: concurrent mouse publication stays ordered and coherent
+PASS: concurrent mouse reader reaches final position without losing wake-ups
+PASS: PCM packets accumulate exact frame count
+PASS: late / duplicate audio discarded
+PASS: PCM16 converts to stereo float playback
+PASS: rebuffer playback fades in instead of clicking
+PASS: backlog bounded instead of accumulating latency
+PASS: large audio discontinuity flushes stale buffer
+PASS: prebuffering provides silence rather than stale sound
+PASS: large WASAPI request waits for a whole block without partially draining audio
+PASS: large WASAPI request plays once its full block and reserve are available
+PASS: reserve follows actual macOS capture batch
+PASS: 30 seconds of burst capture and jitter play without recurring underruns or backlog drops
+PASS: starvation raises a bounded reserve and discards stale tail
+PASS: capture anomalies cannot grow reserve beyond 60 ms
+PASS: Windows release / SHA metadata parsed
+PASS: Windows updater skips same version / downgrade
+PASS: Windows rejects invalid version v01.2.0
+PASS: Windows rejects invalid version 0.2.0-beta
+PASS: Windows rejects invalid version 0.2
+PASS: Windows rejects invalid version 0.2.0/evil
+PASS: Windows rejects missing / invalid checksum
+PASS: Windows rejects missing / invalid checksum
+PASS: Windows rejects altered release URL
+PASS: Windows rejects traversal ZIP
+PASS: Windows rejects non-PE update
+PASS: Swift server rejects wrong Windows pairing key
+PASS: Windows ↔ Swift authenticated handshake
+PASS: capture batch telemetry reaches Windows during handshake
+PASS: Swift → .NET encrypted UDP audio
+PASS: session-key TCP heartbeat / roundtrip
+PASS: connection loss terminates client session
+ALL CHECKS PASSED
+PASS: Swift AES-GCM / known vector
+PASS: PCM regression exercises nonzero Data startIndex
+PASS: PCM packet from sliced Data
+PASS: PCM 10000 variable capture batches preserve every byte and partial tail
+PASS: PCM empty/reset buffer waits for a full packet
+PASS: waiting for PC does not mute Mac
+PASS: connected PC acquires local output mute
+PASS: output switch restores old device and mutes new device
+PASS: disconnect restores app-owned mute
+PASS: previously muted device stays muted
+PASS: manual unmute is respected during current connection
+PASS: abnormal exit journal restores only recorded device
+PASS: failed mute leaves no recovery record or changed state
+PASS: Mac release / SHA metadata parsed
+PASS: Mac updater skips same version / downgrade
+PASS: Mac rejects invalid version v01.2.0
+PASS: Mac rejects invalid version 0.2.0-beta
+PASS: Mac rejects invalid version 0.2
+PASS: Mac rejects invalid version 0.2.0/evil
+PASS: Mac rejects unsafe ZIP /EdgeLink.app/x
+PASS: Mac rejects unsafe ZIP EdgeLink.app/../escape
+PASS: Mac rejects unsafe ZIP EdgeLink.app/x\y
+PASS: Mac rejects unsafe ZIP Other.app/x
+PASS: Mac permits expected bundle path
+PASS: Mac rejects unrelated download host
+PASS: Mac rejects altered release URL
+PASS: server stop / immediate restart releases ports
