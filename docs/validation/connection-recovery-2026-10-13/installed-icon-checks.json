@@ -1,0 +1,51 @@
+{
+  "checks": [
+    {
+      "name": "Info.plist points to the bundled ICNS",
+      "passed": true
+    },
+    {
+      "name": "AppKit decodes the complete ICNS size set",
+      "passed": true
+    },
+    {
+      "name": "AppIcon.png: native dimensions and alpha",
+      "passed": true
+    },
+    {
+      "name": "AppIcon.png: transparent outer corner",
+      "passed": true
+    },
+    {
+      "name": "EdgeLinkStatus.png: native dimensions and alpha",
+      "passed": true
+    },
+    {
+      "name": "EdgeLinkStatus.png: transparent outer corner",
+      "passed": true
+    },
+    {
+      "name": "EdgeLinkStatus.png: nonempty black template mask",
+      "passed": true
+    },
+    {
+      "name": "EdgeLinkStatus@2x.png: native dimensions and alpha",
+      "passed": true
+    },
+    {
+      "name": "EdgeLinkStatus@2x.png: transparent outer corner",
+      "passed": true
+    },
+    {
+      "name": "EdgeLinkStatus@2x.png: nonempty black template mask",
+      "passed": true
+    },
+    {
+      "name": "NSWorkspace resolves the application's Finder/Dock icon",
+      "passed": true
+    }
+  ],
+  "icnsSHA256": "6ab673ac7e6995cd0f165520d4911bea48794a1d29d1dd8433f63a8c74ca534c",
+  "passed": true,
+  "version": "1.0.1"
+}
