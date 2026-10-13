@@ -91,6 +91,9 @@ struct Dashboard: View {
             Text("EdgeLink").font(.system(size: 22, weight: .semibold))
             Spacer()
             Text(state.preview ? "Предпросмотр" : "v\(Updates.current)").font(.system(size: 12)).foregroundStyle(DashboardPalette.secondary(scheme))
+            if state.preview {
+                Button(state.previewLight ? "Светлая тема" : "Тёмная тема") { state.previewLight.toggle() }.buttonStyle(.bordered).controlSize(.small)
+            }
         }.padding(.horizontal, 24).frame(height: 64)
     }
     private var navigation: some View {
