@@ -110,6 +110,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
         Link? candidate = null;
         try
         {
+            var connectionInput = input ?? throw new InvalidOperationException("Обработка ввода не запущена.");
             if (automatic.CheckedValue)
             {
                 status.Text = "Ищем ваш Mac по Ethernet…";
@@ -139,7 +140,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             if (!candidate.IsAlive) throw new IOException("Соединение потеряно во время запуска.");
             link = candidate;
             connectingLink = null;
-            input.Configure(candidate, Desktop.Screens[screen.SelectedIndex].Bounds, side.SelectedIndex == 0 ? "left" : "right", swap.CheckedValue, (double)gain.Value);
+            connectionInput.Configure(candidate, Desktop.Screens[screen.SelectedIndex].Bounds, side.SelectedIndex == 0 ? "left" : "right", swap.CheckedValue, (double)gain.Value);
             lastBytes = 0; lastRefresh=Stopwatch.GetTimestamp(); UpdateStatsTimer();
             connect.Text = "Отключить"; SaveSettings(); SetFields(false); UpdateStatus();
             if (reconnect.CheckedValue) CredentialStore.Save(pairing.Password);
