@@ -50,7 +50,7 @@ public sealed partial class MainWindow:Window
     private readonly ActionButton importPairing=Theme.Button("Открыть файл подключения с Mac…"),firewall=Theme.Button("Разрешить соединение по Ethernet…");
     private readonly NumberBox gain=new(){Minimum=.1,Maximum=4,SmallChange=.1,Value=1,SpinButtonPlacementMode=NumberBoxSpinButtonPlacementMode.Inline};
     private readonly ActionButton connect=Theme.Button("Подключить",true),updateButton=Theme.Button("Проверить обновления");
-    private readonly TextBlock status=Theme.Label("Не подключено"),stats=Theme.Label("Нет активного соединения",14,muted:true),updateStatus=Theme.Label("",14,muted:true);
+    private readonly TextBlock status=Theme.Label("Не подключено"),stats=Theme.Mono("Нет активного соединения",12,muted:true),updateStatus=Theme.Label("",14,muted:true);
     private readonly CancellationTokenSource updateCancellation=new();
     private ReleaseUpdate? availableUpdate;
     private bool manuallyPaused,updating,installing,connecting,started;

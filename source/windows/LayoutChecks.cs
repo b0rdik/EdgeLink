@@ -58,6 +58,12 @@ public sealed partial class MainWindow
         AppWindow.ResizeClient(new Windows.Graphics.SizeInt32(800,740));
         status.Text="Подключите MacBook по Ethernet, чтобы начать работу.";UpdateWizard();await Settle();
         await CheckLayout("home-default-800x740",folder,cases,failures,true);
+        // Theme changes exercise real WinUI resource resolution and native control rendering.
+        foreach(var theme in new[]{ElementTheme.Light,ElementTheme.Dark}) {
+            Root.RequestedTheme=theme;await Settle();
+            await CheckLayout("home-"+theme.ToString().ToLowerInvariant()+"-800x740",folder,cases,failures,true);
+        }
+        Root.RequestedTheme=ElementTheme.Default;
     }
     internal async Task Settle(){Root.UpdateLayout();await Task.Delay(60);Root.UpdateLayout();}
     private async Task CheckLayout(string name,string folder,List<object> cases,List<string> failures,bool snapshot) {
