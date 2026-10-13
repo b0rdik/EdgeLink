@@ -159,9 +159,9 @@ internal static partial class Updates
         catch (IOException) { return false; } catch (UnauthorizedAccessException) { return false; }
         finally { try { if(File.Exists(incoming))File.Delete(incoming); } catch(IOException) {} catch(UnauthorizedAccessException) {} }
     }
-    internal static void RemoveLegacyBackups()
+    internal static void RemoveLegacyBackups(string? installedExecutable = null)
     {
-        string? target = Environment.ProcessPath; if(target==null)return;
+        string? target = installedExecutable ?? Environment.ProcessPath; if(target==null)return;
         string folder=Path.GetDirectoryName(target)!;
         string pattern="^"+Regex.Escape(Path.GetFileName(target))+@"\.previous-\d{8}T\d{9}\.exe$";
         try {

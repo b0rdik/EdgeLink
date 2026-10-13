@@ -111,7 +111,7 @@ public sealed partial class MainWindow:Window
         try{
             if(input==null){input=new Input(BeginInvoke);input.SetFullscreenProtection(protectFullscreen.CheckedValue);input.Changed+=UpdateStatus;}
             if(!updateReadyReported)updateReadyReported=Updates.ReportReady(Program.Arguments);
-            if(updateReadyReported&&!legacyBackupCleanupStarted){legacyBackupCleanupStarted=true;_=Task.Run(Updates.RemoveLegacyBackups);}
+            if(!legacyBackupCleanupStarted){legacyBackupCleanupStarted=true;_=Task.Run(()=>Updates.RemoveLegacyBackups());}
             return true;
         }
         catch(Exception e){input?.Dispose();input=null;lastError="Обработка ввода: "+e.Message;status.Text=lastError;return false;}
