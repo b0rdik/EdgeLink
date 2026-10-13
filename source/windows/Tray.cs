@@ -86,7 +86,7 @@ public sealed partial class MainWindow
         AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(work.Left+(work.Width-width)/2,work.Top+(work.Height-height)/2,width,height));
     }
     private void ApplyCaptionTheme() {
-        int dark=Root.ActualTheme==ElementTheme.Dark?1:0,background=dark==1?0x202020:0xf3f3f3,text=dark==1?0xf5f5f5:0x202020;
+        int dark=Root.ActualTheme==Microsoft.UI.Xaml.ElementTheme.Dark?1:0,background=dark==1?0x202020:0xf3f3f3,text=dark==1?0xf5f5f5:0x202020;
         DwmSetWindowAttribute(Handle,20,ref dark,sizeof(int));
         DwmSetWindowAttribute(Handle,35,ref background,sizeof(int));
         DwmSetWindowAttribute(Handle,36,ref text,sizeof(int));

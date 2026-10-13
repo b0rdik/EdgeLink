@@ -97,7 +97,7 @@ public sealed partial class MainWindow
         home.Children.Add(connectionCard);
         home.Children.Add(BuildDeviceStatus());
         connectionDiagnostics.Content=Theme.Stack(stats);
-        connectionDiagnostics.Expanded+=(_,_)=>UpdateStatsTimer();connectionDiagnostics.Collapsed+=(_,_)=>UpdateStatsTimer();
+        connectionDiagnostics.RegisterPropertyChangedCallback(Expander.IsExpandedProperty,(_,_)=>UpdateStatsTimer());
         home.Children.Add(connectionDiagnostics);
         ToolTipService.SetToolTip(stats,"Обновляется каждую секунду. RTT — время ответа сети; полная задержка звука здесь не измеряется. Пакеты — полученные блоки звука с начала соединения.");
         var trayHint=Theme.Label("Крестик скрывает окно в трей. Соединение продолжает работать.",12,muted:true);
