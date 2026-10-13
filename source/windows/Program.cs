@@ -135,8 +135,8 @@ public sealed partial class MainWindow:Window
         lastBytes=bytes;
     }
     private void UpdateStatsTimer() {
-        bool needed=!IsDisposed&&link!=null&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
-        if(needed&&!refresh.IsRunning)refresh.Start();
+        bool needed=!IsDisposed&&link!=null&&connectionDiagnostics.IsExpanded&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
+        if(needed&&!refresh.IsRunning){lastBytes=Interlocked.Read(ref link!.AudioBytes);lastRefresh=Stopwatch.GetTimestamp();refresh.Start();}
         else if(!needed&&refresh.IsRunning)refresh.Stop();
     }
     private async Task<bool> ConfirmUpdate(ReleaseUpdate update) {

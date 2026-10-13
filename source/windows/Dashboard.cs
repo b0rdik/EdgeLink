@@ -16,8 +16,12 @@ public sealed partial class MainWindow
     private readonly ScrollViewer viewport=new() {HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalScrollMode=ScrollMode.Disabled,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
     private readonly List<StackPanel> pages=[];
     private readonly List<NavigationViewItem> navigationItems=[];
-    private readonly TextBlock connectionHeading=Theme.Label("Давайте подключимся",26,true);
-    private readonly TextBlock inputHint=Theme.Label("",14,muted:true);
+    private readonly TextBlock connectionHeading=Theme.Label("Не подключено",23,true);
+    private readonly TextBlock inputHint=Theme.Label("",13,muted:true);
+    private readonly TextBlock keyboardStatus=Theme.Label("Не подключено",12,muted:true),mouseStatus=Theme.Label("Не подключено",12,muted:true),audioStatus=Theme.Label("Не передаётся",12,muted:true);
+    private readonly List<FontIcon> deviceStatusIcons=[];
+    private readonly Expander connectionDiagnostics=new() {Header="Диагностика соединения",HorizontalAlignment=HorizontalAlignment.Stretch};
+    private string devicePresentation="";
     private readonly TextBlock setupHint=Theme.Label("",14,muted:true);
     private readonly ActionButton setupNext=Theme.Button("Продолжить",true),setupBack=Theme.Button("Назад");
     private readonly List<Border> setupStages=[];
@@ -38,14 +42,14 @@ public sealed partial class MainWindow
 
     private void BuildDashboard() {
         Root.Background=Theme.Resource("ApplicationPageBackgroundThemeBrush");Root.Padding=new Thickness(24,12,24,0);
-        Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(80)});
+        Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(64)});
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(48)});
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(1,GridUnitType.Star)});
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(48)});
-        var brand=new Grid();brand.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(60)});
+        var brand=new Grid();brand.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(52)});
         brand.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});brand.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
-        var icon=new Image {Source=new BitmapImage(new Uri(Desktop.Asset("Brand.png"))),Width=44,Height=44,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left};
-        var titles=Theme.Stack(Theme.Label("EdgeLink",25,true),Theme.Label("Мышь, клавиатура и звук — вместе",13,muted:true));titles.Spacing=2;titles.VerticalAlignment=VerticalAlignment.Center;
+        var icon=new Image {Source=new BitmapImage(new Uri(Desktop.Asset("Brand.png"))),Width=36,Height=36,VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Left};
+        var titles=Theme.Stack(Theme.Label("EdgeLink",22,true));titles.Spacing=2;titles.VerticalAlignment=VerticalAlignment.Center;
         var version=Theme.Label("v"+Updates.CurrentVersion,12,muted:true);version.VerticalAlignment=VerticalAlignment.Center;
         Grid.SetColumn(titles,1);Grid.SetColumn(version,2);brand.Children.Add(icon);brand.Children.Add(titles);brand.Children.Add(version);Root.Children.Add(brand);
         string[] names=["Главная","Первое подключение","Параметры"];string[] glyphs=["\uE80F","\uE71B","\uE713"];
@@ -83,16 +87,18 @@ public sealed partial class MainWindow
         flyout.Opening+=(_,_)=>toggle.IsEnabled=!previewMode&&!connecting&&!installing&&input!=null;menu.Flyout=flyout;Grid.SetColumn(menu,1);footer.Children.Add(menu);Grid.SetRow(footer,3);Root.Children.Add(footer);
 
         var home=Page();
-        var macContent=Theme.Stack(new FontIcon {Glyph="\uE7F8",FontSize=44,Height=48,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Mac",17,true),Theme.Label("",12,muted:true));
-        var pcContent=Theme.Stack(new FontIcon {Glyph="\uE7F4",FontSize=48,Height=48,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("Windows",17,true),Theme.Label("Мышь · клавиатура · наушники",12,muted:true));
+        var macContent=Theme.Stack(new FontIcon {Glyph="\uE7F4",FontSize=40,Height=48,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("MacBook",16,true),Theme.Label("",12,muted:true));
+        var pcContent=Theme.Stack(new FontIcon {Glyph="\uE7F8",FontSize=40,Height=48,HorizontalAlignment=HorizontalAlignment.Center},Theme.Label("ПК",16,true),Theme.Label("Windows",12,muted:true));
         foreach(var text in macContent.Children.OfType<TextBlock>().Concat(pcContent.Children.OfType<TextBlock>()))text.TextAlignment=TextAlignment.Center;
         macTile.Child=macContent;pcTile.Child=pcContent;macTile.Padding=pcTile.Padding=new Thickness(12);
         hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(80)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
         var center=Theme.Stack(new FontIcon {Glyph="\uE8AB",FontSize=25},heroLabel);center.VerticalAlignment=VerticalAlignment.Center;center.HorizontalAlignment=HorizontalAlignment.Center;Grid.SetColumn(center,1);hero.Children.Add(center);hero.Children.Add(macTile);hero.Children.Add(pcTile);
-        connectionCard.Child=Theme.Stack(connectionHeading,hero,new StatusActionRow(status,connect));connectionCard.BorderBrush=new SolidColorBrush(Windows.UI.Color.FromArgb(255,55,91,85));
+        connectionCard.Child=Theme.Stack(connectionHeading,hero,new StatusActionRow(status,connect));connectionCard.BorderBrush=Theme.Resource("CardStrokeColorDefaultBrush");
         home.Children.Add(connectionCard);
-        home.Children.Add(new ResponsiveCards(Theme.Card("Одна мышь и клавиатура","",inputHint),Theme.Card("Звук в наушниках ПК","Звук Windows и Mac смешивается. Выберите аудиовыход в параметрах.")));
-        home.Children.Add(Theme.Card("Статистика в реальном времени","",stats));
+        home.Children.Add(BuildDeviceStatus());
+        connectionDiagnostics.Content=Theme.Stack(stats);
+        connectionDiagnostics.Expanded+=(_,_)=>UpdateStatsTimer();connectionDiagnostics.Collapsed+=(_,_)=>UpdateStatsTimer();
+        home.Children.Add(connectionDiagnostics);
         ToolTipService.SetToolTip(stats,"Обновляется каждую секунду. RTT — время ответа сети; полная задержка звука здесь не измеряется. Пакеты — полученные блоки звука с начала соединения.");
         var trayHint=Theme.Label("Крестик скрывает окно в трей. Соединение продолжает работать.",12,muted:true);
         trayHint.Margin=new Thickness(22,4,22,4);home.Children.Add(trayHint);
@@ -132,6 +138,20 @@ public sealed partial class MainWindow
         side.SelectionChanged+=(_,_)=>UpdateWizard();pairing.PasswordChanged+=(_,_)=>UpdateWizard();
         Content=Root;SelectPage(0);UpdateManualNetwork();UpdateWizard();
     }
+    private Border BuildDeviceStatus() {
+        var row=new Grid();
+        string[] names=["Клавиатура","Мышь","Звук"];string[] glyphs=["\uE765","\uE962","\uE767"];
+        TextBlock[] states=[keyboardStatus,mouseStatus,audioStatus];
+        for(int i=0;i<3;i++) {
+            row.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
+            var icon=new FontIcon {Glyph=glyphs[i],FontSize=22,Width=34,VerticalAlignment=VerticalAlignment.Center,Foreground=Theme.Resource("TextFillColorSecondaryBrush")};deviceStatusIcons.Add(icon);
+            var labels=Theme.Stack(Theme.Label(names[i],13,true),states[i]);labels.Spacing=4;
+            var item=new Grid {Padding=new Thickness(i==0?0:18,0,i==2?0:18,0),BorderThickness=new Thickness(i==0?0:1,0,0,0),BorderBrush=Theme.Resource("DividerStrokeColorDefaultBrush")};
+            item.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(44)});item.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
+            Grid.SetColumn(labels,1);item.Children.Add(icon);item.Children.Add(labels);Grid.SetColumn(item,i);row.Children.Add(item);
+        }
+        return Theme.Card("","",row);
+    }
     private void Synchronize(ComboBox original,ComboBox mirror) {
         void Sync(ComboBox source,ComboBox target) {if(syncingSelectors)return;syncingSelectors=true;try{target.SelectedIndex=source.SelectedIndex;}finally{syncingSelectors=false;}}
         original.SelectionChanged+=(_,_)=>Sync(original,mirror);mirror.SelectionChanged+=(_,_)=>Sync(mirror,original);
@@ -140,7 +160,7 @@ public sealed partial class MainWindow
     private void SelectPage(int index) {
         if(index<0||index>=pages.Count)return;
         if(selectedPage==index&&ReferenceEquals(viewport.Content,pages[index]))return;
-        pageOffsets[selectedPage]=viewport.VerticalOffset;selectedPage=index;viewport.Content=pages[index];
+        pageOffsets[selectedPage]=viewport.VerticalOffset;selectedPage=index;viewport.Content=pages[index];AnimatePage(pages[index]);
         if(navigation.SelectedItem is not NavigationViewItem selected||(int)selected.Tag!=index)navigation.SelectedItem=navigationItems[index];
         BeginInvoke(()=> {if(selectedPage==index)viewport.ChangeView(null,pageOffsets[index],null,true);});
     }
@@ -157,13 +177,22 @@ public sealed partial class MainWindow
             progressNumbers[i].Foreground=i<=setupStage?new SolidColorBrush(Windows.UI.Color.FromArgb(255,20,32,30)):Theme.Resource("TextFillColorSecondaryBrush");
             progressNumbers[i].Text=i<setupStage?"✓":(i+1).ToString();
         }
-        connectionHeading.Text=link==null?"Давайте подключимся":input?.Active==true?"Управление на Mac":"Всё подключено";
+        bool connected=link?.IsAlive==true;
+        connectionHeading.Text=connecting?"Подключение…":!connected?"Не подключено":input?.Active==true?"Управление на MacBook":"Подключено";
+        keyboardStatus.Text=mouseStatus.Text=!connected?"Не подключено":input?.Active==true?"На MacBook":"На ПК";
+        audioStatus.Text=connected?"Принимается":"Не передаётся";
+        string presentation=keyboardStatus.Text+"|"+audioStatus.Text;
+        if(presentation!=devicePresentation) {
+            foreach(var icon in deviceStatusIcons){icon.Foreground=connected?Theme.Mint:Theme.Resource("TextFillColorSecondaryBrush");if(devicePresentation.Length>0)AnimateStatusIcon(icon);}
+            devicePresentation=presentation;
+        }
         inputHint.Text=side.SelectedIndex==0?"Доведите курсор до левого края экрана ПК. На Mac он появится справа.":"Доведите курсор до правого края экрана ПК. На Mac он появится слева.";
         if(input?.FullscreenBlocked==true)inputHint.Text="Переходы приостановлены: активно полноэкранное приложение. После Alt+Tab отведите курсор от края и повторите переход.";
+        ToolTipService.SetToolTip(keyboardStatus,inputHint.Text);ToolTipService.SetToolTip(mouseStatus,inputHint.Text);
         Grid.SetColumn(macTile,side.SelectedIndex==0?0:2);Grid.SetColumn(pcTile,side.SelectedIndex==0?2:0);
         ((TextBlock)((StackPanel)macTile.Child).Children[2]).Text=side.SelectedIndex==0?"Экран слева":"Экран справа";
-        macTile.BorderBrush=link!=null&&input?.Active==true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");
-        pcTile.BorderBrush=link!=null&&input?.Active!=true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");
+        macTile.BorderBrush=connected&&input?.Active==true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");
+        pcTile.BorderBrush=connected&&input?.Active!=true?Theme.Mint:Theme.Resource("CardStrokeColorDefaultBrush");
         setupHint.Text=link!=null?"Соединение установлено. Можно продолжить.":lastError.Length>0?lastError:"Нажмите «Подключить и проверить».";
         setupHint.Visibility=setupStage==2?Visibility.Visible:Visibility.Collapsed;
         setupBack.IsEnabled=setupStage>0&&!connecting;setupNext.Text=setupStage==3?"На главный экран":"Продолжить";

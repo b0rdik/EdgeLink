@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var retryAfter = Date.distantPast
     private var boundIP = ""
     private var audioProbeValidUntil = Date.distantPast
-    private let preview = CommandLine.arguments.contains("--preview") || CommandLine.arguments.contains("--preview-export")
+    private let preview = Bundle.main.object(forInfoDictionaryKey: "EdgeLinkPreview") as? Bool == true || CommandLine.arguments.contains("--preview") || CommandLine.arguments.contains("--preview-export")
     private var item: NSStatusItem!
     private var window: NSWindow!
     private var keepAwakeMenuItem: NSMenuItem!
@@ -101,6 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task.detached(priority: .utility) { Updates.removeLegacyBackups() }
     }
     private func configureActions() {
+        state.onQuit = { [weak self] in self?.quit() }
         state.onMuteChange = { [weak self] in self?.refreshOutputMute() }
         state.onKeepAwakeChange = { [weak self] enabled in self?.applyKeepAwake(enabled) }
         state.onInput = { [weak self] in self?.requestInput() }
@@ -135,8 +136,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc private func toggleKeepAwake() { applyKeepAwake(!state.keepAwakeEnabled) }
     private func buildWindow() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: min(720, max(630, (NSScreen.main?.visibleFrame.height ?? 850) - 70))), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "EdgeLink"; window.titlebarAppearsTransparent = true
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: min(740, max(630, (NSScreen.main?.visibleFrame.height ?? 850) - 70))), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window.title = "EdgeLink"
         window.minSize = NSSize(width: 680, height: 640); window.center(); window.isReleasedWhenClosed = false
         for screen in NSScreen.screens {
             let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
@@ -153,10 +154,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return image
     }
     private func renderPreview() {
+        if Bundle.main.object(forInfoDictionaryKey: "EdgeLinkPreviewCompact") as? Bool == true { window.setContentSize(NSSize(width: 680, height: 620)) }
         state.preview = true; state.localIP = "169.254.42.8"
         state.ethernet = [EthernetAddress(id: "preview", name: "Ethernet", ip: state.localIP)]; state.selectedEthernet = "preview"
         state.pairingAvailable = true; state.inputAllowed = true; state.audioAllowed = false; state.tab = 1; state.step = 1
         state.status = "Разрешите захват системного звука — остальные шаги готовы"
+        state.pairingExported = false; state.keepAwakeEnabled = true; state.keepAwakeActive = true
+        state.keepAwakeHint = "Mac и экран не засыпают, пока EdgeLink запущен."
+        state.onInput = { [weak self] in self?.state.inputAllowed = true }
+        state.onAudio = { [weak self] in self?.state.audioAllowed = true; self?.state.status = "Mac готов к подключению." }
+        state.onCheck = { [weak self] in self?.state.inputAllowed = true; self?.state.audioAllowed = true; self?.state.status = "Mac готов к подключению." }
+        state.onExport = { [weak self] in self?.state.pairingExported = true }
+        state.onUpdate = { [weak self] in self?.state.updateStatus = "Установлена последняя версия." }
+        state.onToggle = { [weak self] in
+            guard let self else { return }; state.running.toggle(); state.connected = state.running
+            state.status = state.running ? "Mac и ПК соединены. Звук передаётся в наушники ПК." : "Соединение остановлено"
+        }
         if CommandLine.arguments.contains("--preview-home") { state.tab = 0; state.audioAllowed = true; state.connected = true; state.running = true; state.status = "Mac и ПК соединены. Звук передаётся в наушники ПК." }
         if let index = CommandLine.arguments.firstIndex(of: "--preview-export"), CommandLine.arguments.count > index + 1 {
             NSApp.appearance = NSAppearance(named: .darkAqua); window.orderFrontRegardless()
