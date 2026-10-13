@@ -16,7 +16,9 @@ gh release create v0.3.0 releases/EdgeLink-macos-arm64.zip releases/EdgeLink-win
 gh release edit v0.3.0 --repo b0rdik/EdgeLink --draft=false --latest
 ```
 
-Замените пример версии реальным `VERSION`. Это ручная публикация сопровождающего; пользователи получают релиз через встроенное OTA. GitHub Actions не настроен. Никогда не добавляйте `.edgelink`, секреты Keychain/Credential Manager, токены или личные файлы настроек в Git/релиз.
+Замените пример версии реальным `VERSION`. Это ручная публикация сопровождающего; пользователи получают релиз через встроенное OTA. `.github/workflows/windows-build.yml` собирает Windows на GitHub Actions при изменениях исходников в main, mac/el-icon-validation или windows/input-validation. Он проверяет протокол, ввод, WinUI, трей и установщик Windows PowerShell 5.1 / NTFS; артефакты `windows-executable` и `windows-validation` сохраняются на 7 дней. GitHub Actions не публикует релиз автоматически. Получайте артефакт именно проверенного коммита; успешная сборка не заменяет проверку физических переходов и звука. Никогда не добавляйте `.edgelink`, секреты Keychain/Credential Manager, токены или личные файлы настроек в Git/релиз.
+
+Чтобы не создавать дополнительные .app в Spotlight, упаковщик поддерживает `--mac-app /Applications/EdgeLink.app --windows-exe PATH/EdgeLink.exe --output SCRATCH.noindex/releases`. Проверяйте, что установленная Mac-сборка соответствует исходникам релизного коммита и `VERSION`.
 
 macOS сборка предпочитает доступный Developer ID / Apple Development сертификат. Можно явно выбрать его через `EDGELINK_SIGN_IDENTITY`; без сертификата используется ad-hoc. Для стабильного доверия Gatekeeper/TCC замените этап подписи на Developer ID, hardened runtime и notarization до упаковки; сохраняйте bundle ID. Общие иконки генерируются на Windows или Mac: `python3 -m pip install -r source/assets/requirements-icons.txt`, затем `python3 source/assets/build-icons.py`. Скрипт содержит единую геометрию, создаёт SVG, PNG, ICO, ICNS, iconset и монохромные шаблоны меню Mac. Готовые ресурсы находятся в Git и не требуют Python для обычной сборки приложения.
 

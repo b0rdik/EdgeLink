@@ -1,0 +1,26 @@
+{
+  "platform": "Windows PowerShell 5.1 / NTFS",
+  "passed": true,
+  "results": [
+    {
+      "scenario": "NEW!",
+      "passed": true
+    },
+    {
+      "scenario": "HANG",
+      "passed": true
+    },
+    {
+      "scenario": "corrupt",
+      "passed": true
+    },
+    {
+      "scenario": "locked",
+      "passed": true
+    },
+    {
+      "scenario": "legacy backup cleanup without update arguments",
+      "passed": true
+    }
+  ]
+}
