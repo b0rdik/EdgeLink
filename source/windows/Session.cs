@@ -140,7 +140,8 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             if (!candidate.IsAlive) throw new IOException("Соединение потеряно во время запуска.");
             link = candidate;
             connectingLink = null;
-            connectionInput.Configure(candidate, Desktop.Screens[screen.SelectedIndex].Bounds, side.SelectedIndex == 0 ? "left" : "right", swap.CheckedValue, (double)gain.Value);
+            var selectedScreen=Desktop.Screens.FirstOrDefault(s=>s.DeviceName==screenDevices[screen.SelectedIndex])??throw new IOException("Выбранный экран ПК недоступен. Перезапустите EdgeLink, чтобы обновить список экранов.");
+            connectionInput.Configure(candidate, selectedScreen.Bounds, side.SelectedIndex == 0 ? "left" : "right", swap.CheckedValue, (double)gain.Value);
             lastBytes = 0; lastRefresh=Stopwatch.GetTimestamp(); UpdateStatsTimer();
             connect.Text = "Отключить"; SaveSettings(); SetFields(false); UpdateStatus();
             if (reconnect.CheckedValue) CredentialStore.Save(pairing.Password);
@@ -175,10 +176,12 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
         {
             Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
             // Pairing secret deliberately stays out of the settings file.
-            File.WriteAllText(configPath, JsonSerializer.Serialize(new { setupComplete, macName, local = local.Text, remote = remote.Text, automatic = automatic.CheckedValue, reconnect = reconnect.CheckedValue, protectFullscreen = protectFullscreen.CheckedValue, side = side.SelectedIndex, jitter = jitter.SelectedIndex, mouseRate = mouseRate.SelectedIndex, gain = gain.Value, swap = swap.CheckedValue, device = devices[device.SelectedIndex].id }));
+            File.WriteAllText(configPath, SerializeSettings());
         }
         catch { }
     }
+    private string SerializeSettings()=>JsonSerializer.Serialize(new {setupComplete,macName,local=local.Text,remote=remote.Text,automatic=automatic.CheckedValue,reconnect=reconnect.CheckedValue,protectFullscreen=protectFullscreen.CheckedValue,screenDevice=screenDevices[screen.SelectedIndex],side=side.SelectedIndex,jitter=jitter.SelectedIndex,mouseRate=mouseRate.SelectedIndex,gain=gain.Value,swap=swap.CheckedValue,device=devices[device.SelectedIndex].id});
+    private void RestoreScreen(string? deviceName) {int index=screenDevices.IndexOf(deviceName??"");if(index>=0)screen.SelectedIndex=index;}
     private void LoadSettings()
     {
         try
@@ -188,6 +191,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             if (root.TryGetProperty("macName", out var name)) macName = name.GetString() ?? "Mac";
             local.Text = root.GetProperty("local").GetString(); remote.Text = root.GetProperty("remote").GetString();
             side.SelectedIndex = Math.Clamp(root.GetProperty("side").GetInt32(), 0, 1);
+            if(root.TryGetProperty("screenDevice",out var monitor)&&monitor.ValueKind==JsonValueKind.String)RestoreScreen(monitor.GetString());
             jitter.SelectedIndex = Math.Clamp(root.GetProperty("jitter").GetInt32(), 0, 2);
             if (root.TryGetProperty("mouseRate", out var rate)) mouseRate.SelectedIndex = Math.Clamp(rate.GetInt32(), 0, 2);
             if (root.TryGetProperty("automatic", out var auto)) automatic.CheckedValue = auto.GetBoolean();

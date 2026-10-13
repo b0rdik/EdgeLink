@@ -60,6 +60,16 @@ public sealed partial class MainWindow
         Check("Import errors stay visible while the existing connection is alive",status.Text==lastError&&keyboardStatus.Text=="На ПК");
         RenderConnectionState(false,false,false,false);Check("Disconnected errors remain visible",status.Text==lastError);
         lastError="";RenderConnectionState(true,false,false,false);Check("Successful connection clears old error presentation",status.Text.Contains("соединены"));
+        int originalScreen=screen.SelectedIndex;
+        const string fixtureScreen="EdgeLink-diagnostic-display";
+        screenDevices.Add(fixtureScreen);screen.Items.Add(fixtureScreen);screen.SelectedIndex=screenDevices.Count-1;
+        using(var saved=JsonDocument.Parse(SerializeSettings())) {
+            Check("Selected monitor is saved by stable device name",saved.RootElement.GetProperty("screenDevice").GetString()==fixtureScreen);
+            screen.SelectedIndex=originalScreen;RestoreScreen(saved.RootElement.GetProperty("screenDevice").GetString());
+            Check("Saved monitor selection restores after restart",screen.SelectedIndex==screenDevices.Count-1);
+        }
+        RestoreScreen("missing-display");Check("Unavailable saved monitor keeps the valid initial selection",screen.SelectedIndex==screenDevices.Count-1);
+        screen.SelectedIndex=originalScreen;screen.Items.RemoveAt(screen.Items.Count-1);screenDevices.RemoveAt(screenDevices.Count-1);
         using(var fixture=new Link(10)) {
             link=fixture;fixture.RoundTripMs=17;
             connectionDiagnostics.IsExpanded=false;UpdateStatsTimer();

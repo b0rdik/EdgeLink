@@ -67,6 +67,7 @@ public sealed partial class MainWindow:Window
     private bool legacyBackupCleanupStarted;
     private readonly DispatcherQueueTimer reconnectTimer,refresh;
     private readonly List<(string name,string id)> devices=[];
+    private readonly List<string> screenDevices=[];
     private Input? input;
     private Link? link,connectingLink;
     private WasapiOut? output;
@@ -84,7 +85,7 @@ public sealed partial class MainWindow:Window
         AppWindow.SetIcon(Desktop.Asset("EdgeLink.ico"));
         side.Items.Add("Mac слева");side.Items.Add("Mac справа");side.SelectedIndex=0;
         var screens=Desktop.Screens;
-        foreach(var s in screens)screen.Items.Add($"{s.DeviceName} — {s.Bounds.Width}×{s.Bounds.Height}{(s.Primary?" (основной)":"")}");
+        foreach(var s in screens){screenDevices.Add(s.DeviceName);screen.Items.Add($"{s.DeviceName} — {s.Bounds.Width}×{s.Bounds.Height}{(s.Primary?" (основной)":"")}");}
         screen.SelectedIndex=Array.FindIndex(screens,s=>s.Primary);
         foreach(var value in new[]{"Авто — от 10 мс","Авто — от 20 мс","Авто — от 40 мс"})jitter.Items.Add(value);jitter.SelectedIndex=0;
         foreach(var value in new[]{"До 1000 Гц — минимальная задержка","До 500 Гц","До 250 Гц — меньше пакетов"})mouseRate.Items.Add(value);mouseRate.SelectedIndex=0;
