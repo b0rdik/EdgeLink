@@ -22,6 +22,8 @@ public sealed partial class MainWindow
         Check("Collapsed diagnostics does not run statistics timer",!refresh.IsRunning);
         connectionDiagnostics.IsExpanded=true;UpdateStatsTimer();
         Check("Visible expanded diagnostics runs statistics timer",refresh.IsRunning);
+        SelectPage(2);Check("Settings page stops hidden statistics timer",!refresh.IsRunning);
+        SelectPage(0);Check("Returning to connection page resumes statistics timer",refresh.IsRunning);
         Desktop.PostMessage(Handle,0x10,0,0);await Settle();Check("Window close hides without terminating",!IsDisposed&&!Desktop.IsWindowVisible(Handle));
         Check("Hidden dashboard stops statistics timer",!refresh.IsRunning);
         Check("Hidden dashboard keeps automatic reconnection timer",reconnectTimer.IsRunning);

@@ -7,7 +7,23 @@ namespace EdgeLink;
 
 public sealed partial class MainWindow
 {
-    private bool CanAnimateUI()=>Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle)&&new Windows.UI.ViewManagement.UISettings().AnimationsEnabled;
+    private readonly Windows.UI.ViewManagement.UISettings uiSettings=new();
+    private bool CanAnimateUI()=>Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle)&&uiSettings.AnimationsEnabled;
+    private void MoveNavigationIndicator(bool animate) {
+        if(navigation.SelectedItem is not NavigationViewItem item||item.ActualWidth==0)return;
+        var bounds=item.TransformToVisual(navigationStrip).TransformBounds(new Windows.Foundation.Rect(0,0,item.ActualWidth,item.ActualHeight));
+        var target=new Vector3((float)(bounds.Left+(bounds.Width-navigationIndicator.Width)/2),0,0);
+        var visual=ElementCompositionPreview.GetElementVisual(navigationIndicator);
+        if(!animate||navigationIndicator.Opacity==0||!CanAnimateUI()) {
+            visual.StopAnimation("Translation");visual.Properties.InsertVector3("Translation",target);
+        } else {
+            var animation=visual.Compositor.CreateVector3KeyFrameAnimation();animation.Duration=TimeSpan.FromMilliseconds(160);
+            animation.InsertExpressionKeyFrame(0,"this.StartingValue");
+            animation.InsertKeyFrame(1,target,visual.Compositor.CreateCubicBezierEasingFunction(new Vector2(.2f,0),new Vector2(0,1)));
+            visual.StartAnimation("Translation",animation);
+        }
+        navigationIndicator.Opacity=1;
+    }
     private void AnimatePage(UIElement page) {
         var visual=ElementCompositionPreview.GetElementVisual(page);visual.StopAnimation("Opacity");visual.Opacity=1;
         if(!CanAnimateUI())return;

@@ -18,14 +18,14 @@ public sealed partial class MainWindow {
             if (root.GetProperty("version").GetInt32() != 1 || root.GetProperty("repository").GetString() != Updates.Repository) throw new InvalidDataException("Несовместимый файл подключения.");
             string text = root.GetProperty("key").GetString()!;
             if (Convert.FromBase64String(text).Length != 32) throw new InvalidDataException("Неверный ключ в файле.");
-            Disconnect(); pairing.Password = text; automatic.CheckedValue = true; manuallyPaused = false;
+            lastError="";Disconnect(); pairing.Password = text; automatic.CheckedValue = true; manuallyPaused = false;
             if (reconnect.CheckedValue) CredentialStore.Save(text);
             macName = root.TryGetProperty("macName", out var name) ? name.GetString() ?? "Mac" : "Mac";
             status.Text = "Mac добавлен. Выберите наушники и подключитесь.";
             setupStage = 1; SelectPage(connectAfter ? 0 : 1); UpdateWizard(); SaveSettings();
             if (connectAfter) await Connect();
         }
-        catch (Exception e) { status.Text = "Не удалось открыть файл: " + e.Message; }
+        catch (Exception e) { lastError="Не удалось открыть файл: "+e.Message;UpdateStatus(); }
     }
     private void RegisterPairingType()
     {
@@ -160,8 +160,6 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     { foreach (var field in new Control[] { local, remote, pairing, side, screen, device, wizardDevice, wizardSide, jitter, mouseRate, gain, swap, automatic, importPairing }) field.IsEnabled = enabled; local.IsEnabled = remote.IsEnabled = enabled && !automatic.CheckedValue; }
     private void UpdateStatus()
     {
-        status.Text = link == null ? (lastError == "" ? "Подключите Mac по Ethernet, чтобы начать работу." : lastError) : input?.Active == true ? "Мышь и клавиатура управляют Mac. Звук передаётся в наушники ПК." : input?.FullscreenBlocked == true ? "Связь активна. Переходы приостановлены для полноэкранного приложения; звук продолжает работать." : "Mac и ПК соединены. Звук передаётся в наушники ПК.";
-        connect.Style = link == null ? (Microsoft.UI.Xaml.Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] : null;
         if (link == null) stats.Text = "Нет активного соединения.";
         UpdateWizard(); UpdateTrayStatus();
     }

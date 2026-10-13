@@ -52,6 +52,12 @@ public sealed partial class MainWindow
             if(selectedPage!=1||!ReferenceEquals(viewport.Content,pages[1]))failures.Add("Queued navigation did not show the last selected page");
             var navAfter=navigation.TransformToVisual(Root).TransformBounds(new Windows.Foundation.Rect(0,0,navigation.ActualWidth,navigation.ActualHeight));
             if(navBefore!=navAfter)failures.Add("Navigation moved after page changes");
+            if(navigationIndicator.Width!=24)failures.Add("Navigation indicator changed its fixed width");
+            var selectedBounds=navigationItems[1].TransformToVisual(navigationStrip).TransformBounds(new Windows.Foundation.Rect(0,0,navigationItems[1].ActualWidth,navigationItems[1].ActualHeight));
+            var indicatorVisual=Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(navigationIndicator);
+            await Task.Delay(180);
+            if(indicatorVisual.Properties.TryGetVector3("Translation",out var translation)!=Microsoft.UI.Composition.CompositionGetValueStatus.Succeeded)failures.Add("Navigation indicator has no translation");
+            else if(Math.Abs(translation.X-(selectedBounds.Left+(selectedBounds.Width-navigationIndicator.Width)/2))>1)failures.Add("Navigation indicator did not settle under the final tab");
             await CheckLayout($"{cycle}-{size.width}x{size.height}-rapid-navigation",folder,cases,failures,false);
         }
         connectionDiagnostics.IsExpanded=false;side.SelectedIndex=0;SelectPage(0);

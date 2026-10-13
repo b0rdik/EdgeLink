@@ -69,6 +69,19 @@ jobs:
             }
           }
           if ($failed.Count) { throw ($failed -join '; ') }
+      - name: Non-activating UI state and statistics regression checks
+        # No input capture, real connection or foreground focus.
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "$PWD/Windows/EdgeLink.exe" -ArgumentList '--background-ui-checks' -WindowStyle Hidden -PassThru
+          if (-not $process.WaitForExit(90000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw 'Background UI checks timed out'
+          }
+          Copy-Item "$env:TEMP/EdgeLink-background-ui-checks/report.json" reports/background-ui.json
+          New-Item reports/ui-states -ItemType Directory -Force | Out-Null
+          Copy-Item "$env:TEMP/EdgeLink-background-ui-checks/*.png" reports/ui-states/
+          if ($process.ExitCode -ne 0) { throw 'Background UI checks failed' }
       - name: Upload executable
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

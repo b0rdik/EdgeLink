@@ -12,8 +12,13 @@ internal static class Program
 {
     internal static readonly string[] Arguments=Environment.GetCommandLineArgs();
     internal static bool Has(string argument)=>Arguments.Contains(argument);
-    internal static bool Diagnostic=>Has("--layout-checks")||Has("--tray-checks")||Has("--fullscreen-checks")||Has("--ui-preview");
+    internal static bool Diagnostic=>Has("--layout-checks")||Has("--tray-checks")||Has("--fullscreen-checks")||Has("--ui-preview")||Has("--background-ui-checks");
     [STAThread] private static void Main() {
+        if(Has("--status-json")) {
+            int index=Array.IndexOf(Arguments,"--status-json");
+            Environment.ExitCode=Arguments.Length>index+1?SingleInstance.SaveStatus(Arguments[index+1]).GetAwaiter().GetResult():2;return;
+        }
+        if(Has("--background-ui-checks")&&(Has("--input-checks")||Has("--tray-checks")||Has("--fullscreen-checks"))){Environment.ExitCode=2;return;}
         if(Has("--input-checks")){Environment.ExitCode=InputChecks.Run();return;}
         if(!Diagnostic&&!SingleInstance.Acquire())return;
         try {
@@ -33,7 +38,11 @@ public sealed partial class App:Application
     public App(){InitializeComponent();}
     protected override void OnLaunched(LaunchActivatedEventArgs args) {
         window=new MainWindow(Program.Diagnostic,Program.Has("--tray-checks"));
-        window.Activate();
+        if(Program.Has("--background-ui-checks")) {
+            window.AppWindow.IsShownInSwitchers=false;
+            window.AppWindow.Move(new Windows.Graphics.PointInt32(-16000,-16000));
+            window.AppWindow.Show(false);
+        } else if(!Program.Has("--start-hidden"))window.Activate();
         window.StartServices();
     }
 }
@@ -82,10 +91,10 @@ public sealed partial class MainWindow:Window
         devices.Add(("Вывод Windows по умолчанию",""));
         if(!previewMode)using(var enumerator=new MMDeviceEnumerator())foreach(var d in enumerator.EnumerateAudioEndPoints(DataFlow.Render,DeviceState.Active)){devices.Add((d.FriendlyName,d.ID));d.Dispose();}
         foreach(var d in devices)device.Items.Add(d.name);device.SelectedIndex=0;
-        BuildDashboard();
         reconnectTimer=DispatcherQueue.CreateTimer();reconnectTimer.Interval=TimeSpan.FromSeconds(10);reconnectTimer.Tick+=async (_,_)=>await TryReconnect();
         refresh=DispatcherQueue.CreateTimer();refresh.Interval=TimeSpan.FromSeconds(1);refresh.Tick+=(_,_)=>RefreshStats();
-        if(!previewMode){LoadSettings();try{pairing.Password=CredentialStore.Load()??"";}catch(Exception e){status.Text="Не удалось загрузить сопряжение: "+e.Message;}
+        BuildDashboard();
+        if(!previewMode){LoadSettings();try{pairing.Password=CredentialStore.Load()??"";}catch(Exception e){lastError="Не удалось загрузить сопряжение: "+e.Message;}
             if(HasPairingKey()){setupComplete=true;setupStage=1;}}
         SelectPage(setupComplete?0:1);UpdateWizard();SetFields(true);
         InitializeWindowLifecycle();
@@ -121,6 +130,7 @@ public sealed partial class MainWindow:Window
         if(Program.Has("--layout-checks")){Environment.ExitCode=await LayoutChecks.Run(this);ExitFromTray();return;}
         if(Program.Has("--tray-checks")){Environment.ExitCode=await TrayChecks.Run(this);ExitFromTray();return;}
         if(Program.Has("--fullscreen-checks")){Environment.ExitCode=await FullscreenChecks.Run(this);ExitFromTray();return;}
+        if(Program.Has("--background-ui-checks")){Environment.ExitCode=await BackgroundUiChecks.Run(this);ExitFromTray();return;}
         if(previewMode)return;
         EnsureInput();
         SingleInstance.StartServer(this,updateCancellation.Token);RegisterPairingType();_ = CheckUpdates(false);
@@ -129,15 +139,30 @@ public sealed partial class MainWindow:Window
         if(args.Length>=3&&args[1]=="--pair")await ImportPairing(args[2],setupComplete);else await TryReconnect();
     }
     private void RefreshStats() {
+        if(!NeedsStats)return;
         long now=Stopwatch.GetTimestamp();double seconds=(now-lastRefresh)/(double)Stopwatch.Frequency;lastRefresh=now;
         if(link==null)return;long bytes=Interlocked.Read(ref link.AudioBytes),packets=Interlocked.Read(ref link.AudioPackets);
         if(Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle))stats.Text=$"RTT: {link.RoundTripMs} мс · звук: {(bytes-lastBytes)*8/Math.Max(seconds,.001)/1_000_000:F2} Мбит/с (IPv4)\nБуфер: {link.Audio.BufferedMs:F1} мс · запас: {link.Audio.TargetMs:F1} мс · прерывания: {link.Audio.Underruns} · пакеты: {packets}";
         lastBytes=bytes;
     }
     private void UpdateStatsTimer() {
-        bool needed=!IsDisposed&&link!=null&&connectionDiagnostics.IsExpanded&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
-        if(needed&&!refresh.IsRunning){lastBytes=Interlocked.Read(ref link!.AudioBytes);lastRefresh=Stopwatch.GetTimestamp();refresh.Start();}
+        bool needed=NeedsStats;
+        if(needed&&!refresh.IsRunning){lastBytes=Interlocked.Read(ref link!.AudioBytes);lastRefresh=Stopwatch.GetTimestamp();RefreshStats();refresh.Start();}
         else if(!needed&&refresh.IsRunning)refresh.Stop();
+    }
+    private bool NeedsStats=>!IsDisposed&&link?.IsAlive==true&&selectedPage==0&&connectionDiagnostics.IsExpanded&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
+    internal async Task<string> GetStatusJson() {
+        var state=input==null?((bool MouseHook,bool Raw,bool Polling)?)null:await input.ProbeState();
+        return System.Text.Json.JsonSerializer.Serialize(new {
+            Version=Updates.CurrentVersion,Connected=link?.IsAlive==true,InputReady=input!=null,
+            InputOwner=input?.Active==true?"Mac":"PC",FullscreenBlocked=input?.FullscreenBlocked==true,
+            WindowVisible=Desktop.IsWindowVisible(Handle),Minimized=Desktop.IsIconic(Handle),Page=selectedPage,
+            DiagnosticsExpanded=connectionDiagnostics.IsExpanded,StatisticsTimerRunning=refresh.IsRunning,
+            MouseHook=state?.MouseHook??false,RawInput=state?.Raw??false,EdgePolling=state?.Polling??false,
+            RoundTripMs=link?.RoundTripMs,AudioPackets=link==null?0:Interlocked.Read(ref link.AudioPackets),
+            AudioBytes=link==null?0:Interlocked.Read(ref link.AudioBytes),
+            AudioBufferedMs=link?.Audio.BufferedMs,AudioTargetMs=link?.Audio.TargetMs,AudioUnderruns=link?.Audio.Underruns
+        });
     }
     private async Task<bool> ConfirmUpdate(ReleaseUpdate update) {
         var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=Root.ActualTheme};

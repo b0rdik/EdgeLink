@@ -27,10 +27,10 @@ internal sealed partial class FieldRow:Grid
 }
 internal sealed partial class StatusActionRow:Grid
 {
-    private readonly TextBlock status;
+    private readonly FrameworkElement status;
     private readonly ActionButton action;
     private bool? stacked;
-    public StatusActionRow(TextBlock status,ActionButton action) {
+    public StatusActionRow(FrameworkElement status,ActionButton action) {
         this.status=status;this.action=action;status.VerticalAlignment=VerticalAlignment.Center;action.MinWidth=136;
         Children.Add(status);Children.Add(action);SizeChanged+=(_,_)=>Arrange();Arrange();
     }
