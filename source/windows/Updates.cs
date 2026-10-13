@@ -190,7 +190,12 @@ try {
   try { $parent = [Diagnostics.Process]::GetProcessById($ParentId) } catch { $parent = $null }
   if ($parent -and -not $parent.WaitForExit(30000)) { throw 'Application did not exit' }
   [IO.File]::Copy($Staged, $incoming, $false)
-  if ($ExpectedHash -notmatch '^[a-fA-F0-9]{64}$' -or $ExpectedHash -ne (Get-FileHash -LiteralPath $incoming -Algorithm SHA256).Hash) { throw 'Prepared file hash mismatch' }
+  if ($ExpectedHash -notmatch '^[a-fA-F0-9]{64}$') { throw 'Invalid prepared file hash' }
+  $hash = [Security.Cryptography.SHA256]::Create()
+  $stream = [IO.File]::OpenRead($incoming)
+  try { $actualHash = [BitConverter]::ToString($hash.ComputeHash($stream)).Replace('-', '') }
+  finally { $stream.Dispose(); $hash.Dispose() }
+  if ($ExpectedHash -ne $actualHash) { throw 'Prepared file hash mismatch' }
   [IO.File]::Replace($incoming, $Target, [NullString]::Value)
   $committed = $true
   [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($log)) | Out-Null
