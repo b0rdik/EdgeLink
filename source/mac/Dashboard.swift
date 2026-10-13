@@ -56,28 +56,28 @@ struct Dashboard: View {
     @ObservedObject var state: DashboardState
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var columns: NavigationSplitViewVisibility = .all
     private var accent: Color { DashboardPalette.accent(scheme) }
     var body: some View {
-        NavigationSplitView(columnVisibility: $columns) {
-            sidebar.navigationSplitViewColumnWidth(min: 155, ideal: 175, max: 210)
-        } detail: {
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        Group {
-                            if state.tab == 0 { home }
-                            else if state.tab == 1 { setup }
-                            else { preferences }
-                        }.id(state.tab).transition(.opacity)
-                    }.frame(maxWidth: 760, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(24)
-                }.animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: state.tab)
-                footer
-            }.background(DashboardPalette.background(scheme))
-                .navigationTitle("EdgeLink")
-                .navigationSubtitle(state.tab == 0 ? "Соединение" : state.tab == 1 ? "Первое подключение" : "Параметры")
-        }.navigationSplitViewStyle(.balanced)
+        VStack(spacing: 0) {
+            Picker("Раздел", selection: $state.tab) {
+                Text("Соединение").tag(0)
+                Text("Настройка").tag(1)
+                Text("Параметры").tag(2)
+            }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 360)
+                .padding(.horizontal, 24).padding(.vertical, 16)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Group {
+                        if state.tab == 0 { home }
+                        else if state.tab == 1 { setup }
+                        else { preferences }
+                    }.id(state.tab).transition(.opacity)
+                }.frame(maxWidth: 760, alignment: .leading).frame(maxWidth: .infinity)
+                    .padding(24)
+            }.animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: state.tab)
+            footer
+        }.background(DashboardPalette.background(scheme))
         .font(.system(size: 13)).tint(accent).buttonStyle(.bordered)
         .preferredColorScheme(state.preview ? (state.previewLight ? .light : .dark) : nil)
         .frame(minWidth: 650, minHeight: 600)
@@ -89,31 +89,17 @@ struct Dashboard: View {
             UserDefaults.standard.set(value, forKey: "muteMac"); state.onMuteChange()
         }
     }
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Image(nsImage: NSImage(named: "AppIcon") ?? NSImage()).resizable().frame(width: 24, height: 24).accessibilityHidden(true)
-                Text("EdgeLink").font(.system(size: 14, weight: .semibold, design: .monospaced))
-            }.padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 16)
-            List(selection: Binding<Int?>(get: { state.tab }, set: { if let value = $0 { state.tab = value } })) {
-                Label("Соединение", systemImage: "network").tag(0)
-                Label("Настройка", systemImage: "link").tag(1)
-                Label("Параметры", systemImage: "slider.horizontal.3").tag(2)
-            }.listStyle(.sidebar)
-            VStack(alignment: .leading, spacing: 10) {
-                if state.preview {
-                    Text("Предпросмотр").font(.system(size: 11)).foregroundStyle(.secondary)
-                    Button(state.previewLight ? "Светлая тема" : "Тёмная тема") { state.previewLight.toggle() }.controlSize(.small)
-                } else { Text("v\(Updates.current)").font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary) }
-            }.padding(16)
-        }
-    }
     private var footer: some View {
         VStack(spacing: 0) {
             Divider()
             HStack {
                 Text("Ctrl + Alt + Esc · вернуть на ПК").font(.system(size: 11, design: .monospaced)).foregroundStyle(DashboardPalette.secondary(scheme))
                 Spacer()
+                if state.preview {
+                    Button(state.previewLight ? "Светлая тема" : "Тёмная тема") { state.previewLight.toggle() }.controlSize(.small)
+                } else {
+                    Text("v\(Updates.current)").font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
+                }
                 Menu("Меню") {
                     if state.preview { Toggle("Светлая тема (предпросмотр)", isOn: $state.previewLight); Divider() }
                     Button("Параметры") { state.tab = 2 }
