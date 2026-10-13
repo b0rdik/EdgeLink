@@ -77,8 +77,11 @@ public sealed partial class MainWindow
             connectionDiagnostics.IsExpanded=true;await Settle();
             Check("Expanding diagnostics starts the actual timer",refresh.IsRunning);
             Check("First expansion immediately displays live counters",stats.Text.Contains("RTT: 17")&&stats.Text.Contains("пакеты: 0"));
+            // The Expander's native reveal animation can still hide its content
+            // after the timer is already running. Measure once it has completed.
+            await Task.Delay(250);Root.UpdateLayout();
             var statsOrigin=stats.TransformToVisual(connectionDiagnostics).TransformPoint(new Windows.Foundation.Point(0,0));
-            Check("Expanded statistics aligns with panel padding instead of centering",statsOrigin.X<50&&stats.ActualWidth>=connectionDiagnostics.ActualWidth-100);
+            Check("Expanded statistics aligns with panel padding without clipping",statsOrigin.X>=16&&statsOrigin.X<50&&stats.ActualWidth>0&&statsOrigin.X+stats.ActualWidth<=connectionDiagnostics.ActualWidth-16);
             Interlocked.Exchange(ref fixture.AudioPackets,100);Interlocked.Exchange(ref fixture.AudioBytes,100500);
             await Task.Delay(1150);
             Check("Dispatcher timer advances counters without manual refresh",stats.Text.Contains("пакеты: 100"));

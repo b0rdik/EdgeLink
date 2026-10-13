@@ -15,6 +15,7 @@ public sealed partial class MainWindow
     internal async Task VerifyTray(List<object> checks,List<string> failures) {
         void Check(string name,bool pass){checks.Add(new{Name=name,Passed=pass});if(!pass)failures.Add(name);}
         Check("Shell notification icon registered",trayIcon?.Registered==true);
+        SelectPage(0);await Settle();
         reconnectTimer.Start();
         // Local unconnected link: exercise only dashboard timer lifecycle, without
         // sockets, pairing, audio playback or input capture.
