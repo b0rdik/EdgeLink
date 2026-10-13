@@ -1,0 +1,2 @@
+PASS: public release recognized from 0.3.4/1.0.0; current 1.0.1 remains current; production OTA download/hash/archive/version/signature verified without installation
+PASS: production Mac updater checks unauthenticated public GitHub API and receives 1.0.1

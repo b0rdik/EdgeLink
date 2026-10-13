@@ -1,0 +1,1 @@
+PASS: production Windows release parser accepts public 1.0.1 for 0.3.4/1.0.0; current version remains current; published ZIP/executable structure and hash match. Executed on macOS, not a native Windows installation.
