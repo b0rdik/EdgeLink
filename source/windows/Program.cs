@@ -140,7 +140,7 @@ public sealed partial class MainWindow:Window
         else if(!needed&&refresh.IsRunning)refresh.Stop();
     }
     private async Task<bool> ConfirmUpdate(ReleaseUpdate update) {
-        var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=ElementTheme.Dark};
+        var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=Root.ActualTheme};
         return await dialog.ShowAsync()==ContentDialogResult.Primary;
     }
 }

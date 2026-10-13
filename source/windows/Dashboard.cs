@@ -9,7 +9,7 @@ namespace EdgeLink;
 
 public sealed partial class MainWindow
 {
-    internal readonly Grid Root=new() {RequestedTheme=ElementTheme.Dark};
+    internal readonly Grid Root=new() {RequestedTheme=ElementTheme.Default};
     private readonly NavigationView navigation=new() {PaneDisplayMode=NavigationViewPaneDisplayMode.Top,IsSettingsVisible=false,IsBackButtonVisible=NavigationViewBackButtonVisible.Collapsed,IsPaneToggleButtonVisible=false};
     private readonly Grid navigationStrip=new();
     private readonly Border navigationIndicator=new() {Width=24,Height=3,CornerRadius=new CornerRadius(2),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Bottom,Margin=new Thickness(0,0,0,4),IsHitTestVisible=false,Opacity=0};
@@ -183,7 +183,7 @@ public sealed partial class MainWindow
         audioStatus.Text=connected?"Принимается":"Не передаётся";
         string presentation=keyboardStatus.Text+"|"+audioStatus.Text;
         if(presentation!=devicePresentation) {
-            foreach(var icon in deviceStatusIcons){icon.Foreground=connected?Theme.Mint:Theme.Resource("TextFillColorSecondaryBrush");if(devicePresentation.Length>0)AnimateStatusIcon(icon);}
+            foreach(var icon in deviceStatusIcons){icon.Foreground=connected?Theme.Resource("AccentTextFillColorPrimaryBrush"):Theme.Resource("TextFillColorSecondaryBrush");if(devicePresentation.Length>0)AnimateStatusIcon(icon);}
             devicePresentation=presentation;
         }
         inputHint.Text=side.SelectedIndex==0?"Доведите курсор до левого края экрана ПК. На Mac он появится справа.":"Доведите курсор до правого края экрана ПК. На Mac он появится слева.";
