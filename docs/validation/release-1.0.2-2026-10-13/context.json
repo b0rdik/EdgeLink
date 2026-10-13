@@ -11,5 +11,11 @@
   "windowsTrayChecks": 15,
   "windowsInstallerScenarios": 5,
   "windowsCorePass": 43,
-  "physicalHardwareRetested": false
+  "physicalHardwareRetested": false,
+  "releaseTag": "v1.0.2",
+  "releaseCommit": "664bf2b005d00932ea43521ebf99224470b5eea7",
+  "pullRequest": "https://github.com/b0rdik/EdgeLink/pull/1",
+  "merged": true,
+  "mainRun": "https://github.com/b0rdik/EdgeLink/actions/runs/38383116635",
+  "stableLatestPublished": true
 }

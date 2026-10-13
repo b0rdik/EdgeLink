@@ -46,6 +46,11 @@ on the user's Windows 11 25H2 machine. Physical transfers, sound quality, games,
 approved by the user; the Windows port awaits their installed visual assessment.
 No credentials, personal configuration or pairing files are in these reports.
 
-Release assets are prepared from the installed Mac bundle and the final CI EXE.
-Publication metadata/digests will be added after the stable release is available.
+Stable [v1.0.2](https://github.com/b0rdik/EdgeLink/releases/tag/v1.0.2) is published
+as latest. PR #1 was merged; tag target is
+`664bf2b005d00932ea43521ebf99224470b5eea7`. Main CI 38383116635 also passed;
+application sources are identical to the packaged CI commit. Four assets match
+local sizes and GitHub SHA-256 digests. The unauthenticated public latest endpoint
+returns v1.0.2 with the exact download URLs required by both updaters.
+Publication metadata is in `published-release.json`.
 The updater keeps the existing no-backup replacement policy and preserves settings.

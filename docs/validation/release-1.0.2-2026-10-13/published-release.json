@@ -1,0 +1,35 @@
+{
+  "tag": "v1.0.2",
+  "page": "https://github.com/b0rdik/EdgeLink/releases/tag/v1.0.2",
+  "targetCommit": "664bf2b005d00932ea43521ebf99224470b5eea7",
+  "publishedAt": "2026-10-13T10:31:17Z",
+  "publicLatestUnauthenticated": true,
+  "draft": false,
+  "prerelease": false,
+  "assets": [
+    {
+      "name": "EdgeLink-macos-arm64.zip",
+      "size": 441340,
+      "digest": "sha256:b609620b21d8122004c1dce7bb2495ccc87b985f16841eaea184a764d596957f",
+      "browser_download_url": "https://github.com/b0rdik/EdgeLink/releases/download/v1.0.2/EdgeLink-macos-arm64.zip"
+    },
+    {
+      "name": "EdgeLink-windows-x64.zip",
+      "size": 88075178,
+      "digest": "sha256:25339151818c16b686312d9e7890f38f4595de7de20948701577b80eb4059522",
+      "browser_download_url": "https://github.com/b0rdik/EdgeLink/releases/download/v1.0.2/EdgeLink-windows-x64.zip"
+    },
+    {
+      "name": "EdgeLink.exe",
+      "size": 234465327,
+      "digest": "sha256:7e2e63cd98e1a2c9d81b8249b5b0b355c7d1542a69b61279ce31331e83ddef54",
+      "browser_download_url": "https://github.com/b0rdik/EdgeLink/releases/download/v1.0.2/EdgeLink.exe"
+    },
+    {
+      "name": "SHA256.txt",
+      "size": 261,
+      "digest": "sha256:4d9c37d37218fd05e7edfa89d7f8c926fad9ba25606240e3fcf6dd5fbf87b4eb",
+      "browser_download_url": "https://github.com/b0rdik/EdgeLink/releases/download/v1.0.2/SHA256.txt"
+    }
+  ]
+}

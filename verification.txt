@@ -1,7 +1,9 @@
-EdgeLink 1.0.2 release candidate — native terminal styling, 2026-10-13
+EdgeLink 1.0.2 published release — native terminal styling, 2026-10-13
 
 Windows source: 0c0c635ac7f5fab6cf11044d6a1ae8e1a19b1a9a; GitHub Actions run 38382420141 PASS. Native WinUI layout 111 cases / 0 failures / 96 DPI, input 15/15, tray 15/15, PowerShell 5.1 / NTFS installer 5/5, .NET core 43 PASS. Final EXE 234465327 bytes, SHA256 7e2e63cd98e1a2c9d81b8249b5b0b355c7d1542a69b61279ce31331e83ddef54. Both native themes inspected, mixed-theme candidate excluded.
 Mac installed source: 8a04f4ed51f224a556931bc5110b07abfc9133f4; files identical in Windows CI commit. Stable signature retained, strict codesign and icon audit 11/11 PASS, Swift/.NET checks 98 PASS (discovery skipped while installed app running). Native UI checked, sidebar removed at user request, top navigation approved by user. No new physical input/audio/gaming test is claimed. Reports: docs/validation/release-1.0.2-2026-10-13/.
+
+PUBLICATION: PR #1 merged; stable latest v1.0.2 targets 664bf2b005d00932ea43521ebf99224470b5eea7; main CI 38383116635 PASS. Public unauthenticated latest API and all four asset sizes/digests match the packaged release. See published-release.json.
 
 History:
 
