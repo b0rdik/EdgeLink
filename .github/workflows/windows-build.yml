@@ -1,0 +1,74 @@
+name: Windows release build
+
+on:
+  push:
+    branches: [main, mac/el-icon-validation, windows/input-validation]
+    paths:
+      - .github/workflows/windows-build.yml
+      - source/windows/**
+      - source/checks/**
+      - source/assets/**
+      - source/build-windows.ps1
+      - VERSION
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build self-contained x64 application
+        shell: pwsh
+        run: |
+          & ./source/build-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $exe = Get-Item Windows/EdgeLink.exe
+          @{ Commit = '${{ github.sha }}'; Version = $exe.VersionInfo.FileVersion; ProductVersion = $exe.VersionInfo.ProductVersion; Sha256 = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash; Bytes = $exe.Length; OS = [Environment]::OSVersion.VersionString; SDK = (dotnet --version) } | ConvertTo-Json | Set-Content reports/build.json
+      - name: Check protocol, queues, discovery and update receipts
+        shell: pwsh
+        run: |
+          dotnet run --project source/checks/Checks.csproj -c Release -p:TreatWarningsAsErrors=true -- --ui-loop-check | Tee-Object reports/core.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Core checks failed' }
+      - name: Native input, layout and tray checks
+        shell: pwsh
+        run: |
+          $failed = @()
+          foreach ($mode in @('input', 'layout', 'tray')) {
+            $process = Start-Process -FilePath "$PWD/Windows/EdgeLink.exe" -ArgumentList "--$mode-checks" -PassThru
+            if (-not $process.WaitForExit(90000)) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              $failed += "$mode timed out"
+            } elseif ($process.ExitCode -ne 0) {
+              $failed += "$mode exited with $($process.ExitCode)"
+            }
+            $report = Join-Path $env:TEMP "EdgeLink-$mode-checks.json"
+            if ($mode -eq 'layout') { $report = Join-Path $env:TEMP 'EdgeLink-layout-checks/report.json' }
+            if (Test-Path $report) { Copy-Item $report "reports/$mode.json" }
+          }
+          if ($failed.Count) { throw ($failed -join '; ') }
+      - name: Upload executable
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-executable
+          path: Windows/EdgeLink.exe
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-validation
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 7
