@@ -1,0 +1,21 @@
+{
+  "Version": "1.0.3",
+  "Connected": true,
+  "InputReady": true,
+  "InputOwner": "PC",
+  "FullscreenBlocked": true,
+  "WindowVisible": false,
+  "Minimized": false,
+  "Page": 0,
+  "DiagnosticsExpanded": false,
+  "StatisticsTimerRunning": false,
+  "MouseHook": false,
+  "RawInput": false,
+  "EdgePolling": false,
+  "RoundTripMs": 0,
+  "AudioPackets": 8,
+  "AudioBytes": 8264,
+  "AudioBufferedMs": 20,
+  "AudioTargetMs": 20,
+  "AudioUnderruns": 0
+}

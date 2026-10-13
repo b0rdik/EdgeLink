@@ -1,0 +1,556 @@
+{
+  "Version": "1.0.3",
+  "Framework": "WinUI 3",
+  "NoActivation": true,
+  "Checks": [
+    {
+      "Name": "Isolated preview has no input, audio, real connection or tray",
+      "Passed": true
+    },
+    {
+      "Name": "Background window never receives foreground focus",
+      "Passed": true
+    },
+    {
+      "Name": "Background window is excluded from Alt\u002BTab",
+      "Passed": true
+    },
+    {
+      "Name": "Background window remains outside the desktop",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-disconnected: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-connecting: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-pc: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-left-mac: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-disconnected: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-connecting: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-pc: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Light-right-mac: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Light: fullscreen pause is explained",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-disconnected: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-connecting: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-pc: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-left-mac: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-disconnected: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-connecting: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-pc: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: exactly the input owner is highlighted",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: active borders have visible thickness",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: keyboard, mouse and audio match state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: diagram follows left/right setting",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: connection heading follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: connect button follows state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark-right-mac: explanation matches connected state",
+      "Passed": true
+    },
+    {
+      "Name": "Dark: fullscreen pause is explained",
+      "Passed": true
+    },
+    {
+      "Name": "Import errors stay visible while the existing connection is alive",
+      "Passed": true
+    },
+    {
+      "Name": "Disconnected errors remain visible",
+      "Passed": true
+    },
+    {
+      "Name": "Successful connection clears old error presentation",
+      "Passed": true
+    },
+    {
+      "Name": "Selected monitor is saved by stable device name",
+      "Passed": true
+    },
+    {
+      "Name": "Saved monitor selection restores after restart",
+      "Passed": true
+    },
+    {
+      "Name": "Unavailable saved monitor keeps the valid initial selection",
+      "Passed": true
+    },
+    {
+      "Name": "Collapsed diagnostics stops statistics",
+      "Passed": true
+    },
+    {
+      "Name": "Expanding diagnostics starts the actual timer",
+      "Passed": true
+    },
+    {
+      "Name": "First expansion immediately displays live counters",
+      "Passed": true
+    },
+    {
+      "Name": "Expanded statistics aligns with panel padding without clipping",
+      "Passed": true
+    },
+    {
+      "Name": "Dispatcher timer advances counters without manual refresh",
+      "Passed": true
+    },
+    {
+      "Name": "Other page stops statistics",
+      "Passed": true
+    },
+    {
+      "Name": "Returning to connection resumes statistics",
+      "Passed": true
+    },
+    {
+      "Name": "Hidden window stops statistics",
+      "Passed": true
+    },
+    {
+      "Name": "Non-activating restore resumes statistics",
+      "Passed": true
+    },
+    {
+      "Name": "Collapsing diagnostics stops statistics",
+      "Passed": true
+    },
+    {
+      "Name": "Lost connection stops statistics",
+      "Passed": true
+    },
+    {
+      "Name": "No physical input or audio was started by checks",
+      "Passed": true
+    },
+    {
+      "Name": "Checks never activated their window",
+      "Passed": true
+    }
+  ],
+  "Failures": []
+}

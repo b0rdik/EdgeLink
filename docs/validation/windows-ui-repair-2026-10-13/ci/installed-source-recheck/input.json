@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "check": "separate input thread; no disconnected mouse hook, raw registration or polling",
+      "pass": true
+    },
+    {
+      "check": "input pump responds while UI is blocked for 300 ms",
+      "pass": true,
+      "elapsedMs": 0.1771
+    },
+    {
+      "check": "configured PC-side input polls without mouse hook or raw registration",
+      "pass": true
+    },
+    {
+      "check": "native foreground hooks register, disable and restart without PC-side mouse capture",
+      "pass": true
+    },
+    {
+      "check": "unchanged fullscreen setting preserves the current event watcher",
+      "pass": true
+    },
+    {
+      "check": "five native mouse hook install/remove cycles leave PC uncaptured",
+      "pass": true
+    },
+    {
+      "check": "disconnect stops edge polling and preserves uncaptured PC input",
+      "pass": true
+    },
+    {
+      "check": "connection loss stops PC-side polling without mouse capture",
+      "pass": true
+    },
+    {
+      "check": "shutdown preserves previous raw registrations",
+      "pass": true
+    },
+    {
+      "check": "1000 queued Win32 probes and five clean pump restarts",
+      "pass": true
+    },
+    {
+      "check": "concurrent query publication and shutdown complete or reject every query",
+      "pass": true
+    },
+    {
+      "check": "native WM_TIMER starts and stops on input pump",
+      "pass": true
+    },
+    {
+      "check": "unchanged timer interval keeps native polling progressing",
+      "pass": true
+    },
+    {
+      "check": "sampled edge crossings: both sides, held input, height, parked cursor, cooldown and inward rearm",
+      "pass": true
+    },
+    {
+      "check": "fullscreen client geometry: borderless, title/taskbar, negative coordinates, second monitor and tolerance",
+      "pass": true
+    }
+  ]
+}

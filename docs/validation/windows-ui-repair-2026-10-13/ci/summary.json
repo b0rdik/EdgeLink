@@ -1,0 +1,28 @@
+{
+  "Source": "b5279d4de3b86a7c143c8ce5f4558b5795c80563",
+  "Run": 38416686283,
+  "Conclusion": "success",
+  "Url": "https://github.com/b0rdik/EdgeLink/actions/runs/38416686283",
+  "Platform": "GitHub Actions windows-latest / Windows build 26100 / 96 DPI",
+  "CorePass": 43,
+  "InputPass": 15,
+  "TrayPass": 17,
+  "LayoutCases": 111,
+  "BackgroundStatePass": 137,
+  "BackgroundLayoutCases": 111,
+  "InstallerPass": 5,
+  "InitialBackgroundLayoutFailure": {
+    "Source": "5f77d1ab6fa8c769ab967be386e4aca63f9d3ce7",
+    "Run": 38414598841,
+    "Attempt": 1,
+    "Detail": "All 137 state checks passed; background layout returned failure. The first workflow did not preserve the second layout report; the exact layout failure is unavailable. Subsequent reporting-only revision passed all checks."
+  },
+  "InstalledSourceRepeat": {
+    "Source": "5f77d1ab6fa8c769ab967be386e4aca63f9d3ce7",
+    "Run": 38414598841,
+    "Attempt": 2,
+    "Conclusion": "success",
+    "Url": "https://github.com/b0rdik/EdgeLink/actions/runs/38414598841/attempts/2",
+    "Detail": "Same source passes all checks without code changes; first background layout failure did not reproduce."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "Version": "1.0.3+5f77d1ab6fa8c769ab967be386e4aca63f9d3ce7",
+  "SHA256": "06C1AAD8CD7F8884FCE694CCA325CAC3DCAEE5E8FACBB268311DFAA9108D63BB",
+  "Bytes": 234493999,
+  "GracefulShutdown": true,
+  "AffectedProcesses": 1,
+  "StartedHidden": true,
+  "StartupReceiptVerified": true,
+  "SettingsPreserved": true,
+  "ProcessId": 5172,
+  "Connected": true,
+  "InputOwner": "PC",
+  "PacketsBefore": 8,
+  "PacketsAfter": 636,
+  "MouseHook": false,
+  "RawInput": false,
+  "StatisticsTimerRunning": false
+}

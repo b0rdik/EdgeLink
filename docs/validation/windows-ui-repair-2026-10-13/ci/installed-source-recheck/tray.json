@@ -1,0 +1,75 @@
+{
+  "Framework": "WinUI 3",
+  "Version": "1.0.3",
+  "Checks": [
+    {
+      "Name": "Shell notification icon registered",
+      "Passed": true
+    },
+    {
+      "Name": "Collapsed diagnostics does not run statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Visible expanded diagnostics runs statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Settings page stops hidden statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Returning to connection page resumes statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Window close hides without terminating",
+      "Passed": true
+    },
+    {
+      "Name": "Hidden dashboard stops statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Hidden dashboard keeps automatic reconnection timer",
+      "Passed": true
+    },
+    {
+      "Name": "Second instance invocation restores",
+      "Passed": true
+    },
+    {
+      "Name": "Restored connected dashboard resumes statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Tray Open restores",
+      "Passed": true
+    },
+    {
+      "Name": "Minimized dashboard stops statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "Restore leaves minimized state",
+      "Passed": true
+    },
+    {
+      "Name": "Disconnected dashboard stops statistics timer",
+      "Passed": true
+    },
+    {
+      "Name": "OS shutdown bypasses hide",
+      "Passed": true
+    },
+    {
+      "Name": "Installer close bypasses hide",
+      "Passed": true
+    },
+    {
+      "Name": "Explicit Exit disposes window and tray",
+      "Passed": true
+    }
+  ],
+  "Failures": []
+}
