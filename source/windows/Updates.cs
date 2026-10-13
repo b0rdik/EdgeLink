@@ -140,6 +140,9 @@ internal static partial class Updates
         if(!Regex.IsMatch(expectedHash,@"^[a-fA-F0-9]{64}$"))throw new InvalidDataException("Контрольная сумма подготовленного обновления отсутствует.");
         File.WriteAllText(script, InstallerScript);
         var start = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true };
+        // PowerShell 7 can supply an incompatible module path when it launches
+        // EdgeLink. Let Windows PowerShell initialize its own built-in modules.
+        start.Environment.Remove("PSModulePath");
         foreach (string arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-ParentId", Environment.ProcessId.ToString(), "-Target", target, "-Staged", stagedExe, "-ExpectedHash", expectedHash }) start.ArgumentList.Add(arg);
         _ = Process.Start(start) ?? throw new IOException("Не удалось запустить установщик.");
     }

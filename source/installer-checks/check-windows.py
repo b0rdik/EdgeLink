@@ -2,6 +2,7 @@
 import ctypes
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -46,7 +47,11 @@ with tempfile.TemporaryDirectory(prefix="EdgeLink-installer-check-") as root:
                 api.CloseHandle.argtypes = [ctypes.c_void_p]
                 lock = api.CreateFileW(str(target), 0x80000000, 1, None, 3, 0, None)
                 assert lock not in (None, ctypes.c_void_p(-1).value), ctypes.get_last_error()
-            result = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(install), "-ParentId", "9999999", "-Target", str(target), "-Staged", str(staged), "-ExpectedHash", expected_hash], timeout=30, capture_output=True)
+            # Match LaunchInstaller: Windows PowerShell supplies its own module
+            # path rather than inheriting PowerShell 7's incompatible modules.
+            environment = dict(os.environ)
+            environment.pop("PSModulePath", None)
+            result = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(install), "-ParentId", "9999999", "-Target", str(target), "-Staged", str(staged), "-ExpectedHash", expected_hash], timeout=30, capture_output=True, env=environment)
             assert result.returncode == (0 if mode == b"NEW!" else 1), (result.stdout, result.stderr)
             expected = b"OLD!" if mode in (b"corrupt", b"locked") else mode
             assert target.read_bytes().endswith(expected), (case / "update.log").read_text()
