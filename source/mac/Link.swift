@@ -51,6 +51,7 @@ final class LinkServer {
         _ = fcntl(wakeWrite, F_SETFL, O_NONBLOCK)
         for fd in [listener, udp, wakeRead, wakeWrite] { _ = fcntl(fd, F_SETFD, FD_CLOEXEC) }
         do {
+            guard fcntl(listener, F_SETFL, O_NONBLOCK) == 0 else { throw LinkError.message("Не удалось настроить ожидание подключения") }
             var one: Int32 = 1; setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &one, 4)
             try Wire.bind(listener, ip: ip, port: 48791); try Wire.bind(udp, ip: ip, port: 48793)
             Wire.timeout(udp, seconds: 1)
@@ -78,7 +79,7 @@ final class LinkServer {
                 var address = sockaddr_in(), size = socklen_t(MemoryLayout<sockaddr_in>.size)
                 let fd = withUnsafeMutablePointer(to: &address) { p in p.withMemoryRebound(to: sockaddr.self, capacity: 1) { acceptConnection(listener, $0, &size) } }
                 if fd < 0 {
-                    if errno == EINTR { continue }
+                    if errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNABORTED { continue }
                     if isRunning {
                         let error = "Сервер соединения остановлен: \(String(cString: strerror(errno)))"
                         reportFailure(error, run: run)
@@ -87,6 +88,10 @@ final class LinkServer {
                 }
                 if let expectedPeer, address.sin_addr.s_addr != expectedPeer.s_addr { close(fd); continue }
                 _ = fcntl(fd, F_SETFD, FD_CLOEXEC)
+                // BSD accept can inherit the listener's nonblocking flag;
+                // framed TCP reads use their configured socket timeout instead.
+                let flags = fcntl(fd, F_GETFL)
+                guard flags >= 0 && fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == 0 else { close(fd); continue }
                 state.lock()
                 guard running else { state.unlock(); close(fd); break }
                 controlFD = fd; state.unlock()
