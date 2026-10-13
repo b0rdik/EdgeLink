@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "0c0c635ac7f5fab6cf11044d6a1ae8e1a19b1a9a",
+  "windowsRun": "https://github.com/b0rdik/EdgeLink/actions/runs/38382420141",
+  "version": "1.0.2",
+  "macUIApprovedByUser": true,
+  "macSourceCommit": "8a04f4ed51f224a556931bc5110b07abfc9133f4",
+  "macCorePass": 98,
+  "macDiscoveryChecksSkipped": true,
+  "windowsLayoutCases": 111,
+  "windowsInputChecks": 15,
+  "windowsTrayChecks": 15,
+  "windowsInstallerScenarios": 5,
+  "windowsCorePass": 43,
+  "physicalHardwareRetested": false
+}

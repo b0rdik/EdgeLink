@@ -48,11 +48,11 @@ permission mechanisms are unchanged by this UI revision.
 
 ## Limits / next step
 
-Visual approval of the final top-navigation design has not yet been obtained.
+The user approved the final top-navigation design on 2026-10-13 ("супер").
 The isolated UI preview does not use pairing secrets, sockets, audio, input hooks,
 permissions or persistent preferences. Its connected/permission states are mock
 UI states, not hardware validation. Ethernet connectivity, physical cursor/key
 transfers and audible quality are not retested for this UI-only change.
 
-Wait for the user's approval of Mac before porting this style to Windows or
-publishing/merging a release. No public 1.0.2 release has been created.
+Following approval, Windows was ported and validated; publication progress is
+tracked in `../release-1.0.2-2026-10-13/`.
