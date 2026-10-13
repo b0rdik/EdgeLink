@@ -56,10 +56,16 @@ internal sealed class ForegroundGuard(Action<Action> post, Action changed) : IDi
     internal static bool IsFullscreen(nint window, Rectangle screen)
     {
         if (window == 0 || !Desktop.IsWindowVisible(window) || Desktop.IsIconic(window) || !Desktop.GetClientRect(window, out var client)) return false;
+        // Hiding the dashboard can activate Explorer's desktop. Its client area
+        // covers the monitor, but it must not pause transfers as if it were a game.
+        if (window == Native.GetShellWindow() || window == Native.GetDesktopWindow()) return false;
+        var name = new System.Text.StringBuilder(256);
+        if (Native.GetClassName(window, name, name.Capacity) > 0 && IsShellClass(name.ToString())) return false;
         var origin = new Native.Point { X = client.Left, Y = client.Top };
         if (!Native.ClientToScreen(window, ref origin)) return false;
         return CoversScreen(new Rectangle(origin.X, origin.Y, client.Right-client.Left, client.Bottom-client.Top), screen);
     }
+    internal static bool IsShellClass(string name) => name is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     internal static bool CoversScreen(Rectangle client, Rectangle screen) =>
         screen.Width > 0 && screen.Height > 0 && client.Width > 0 && client.Height > 0 &&
         client.Left <= screen.Left + 1 && client.Top <= screen.Top + 1 &&

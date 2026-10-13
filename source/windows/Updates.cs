@@ -109,6 +109,7 @@ internal static partial class Updates
             string version = FileVersionInfo.GetVersionInfo(exe).FileVersion?.Split('+')[0] ?? "";
             if (!Version.TryParse(version, out var built) || built.ToString(3) != update.Version)
                 throw new InvalidDataException("Версия внутри файла не совпадает с релизом.");
+            using(var verified=File.OpenRead(exe))File.WriteAllText(exe+".sha256",Convert.ToHexString(await SHA256.HashDataAsync(verified,token)));
             return exe;
         }
         catch { Directory.Delete(folder, true); throw; }
@@ -135,38 +136,85 @@ internal static partial class Updates
         string probe = Path.Combine(Path.GetDirectoryName(target)!, ".edgelink-write-" + Guid.NewGuid().ToString("N"));
         File.WriteAllText(probe, ""); File.Delete(probe); // fail before quitting if installed in a protected folder
         string script = Path.Combine(folder, "install.ps1");
+        string expectedHash = File.ReadAllText(stagedExe + ".sha256").Trim();
+        if(!Regex.IsMatch(expectedHash,@"^[a-fA-F0-9]{64}$"))throw new InvalidDataException("Контрольная сумма подготовленного обновления отсутствует.");
         File.WriteAllText(script, InstallerScript);
         var start = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true };
-        foreach (string arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-ParentId", Environment.ProcessId.ToString(), "-Target", target, "-Staged", stagedExe }) start.ArgumentList.Add(arg);
+        foreach (string arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-ParentId", Environment.ProcessId.ToString(), "-Target", target, "-Staged", stagedExe, "-ExpectedHash", expectedHash }) start.ArgumentList.Add(arg);
         _ = Process.Start(start) ?? throw new IOException("Не удалось запустить установщик.");
     }
+    internal static bool ReportReady(string[] arguments)
+    {
+        int index = Array.IndexOf(arguments, "--update-ready");
+        if (index < 0) return true;
+        if (arguments.Length <= index + 2 || !Guid.TryParse(arguments[index + 2], out _)) return false;
+        string nonce = arguments[index + 2], path = Path.GetFullPath(arguments[index + 1]);
+        string folder = Path.GetDirectoryName(path)!;
+        if (Path.GetFileName(path) != "ready-" + nonce + ".txt" ||
+            !Path.GetFileName(folder).StartsWith("EdgeLink-update-", StringComparison.Ordinal) ||
+            !Guid.TryParse(Path.GetFileName(folder)["EdgeLink-update-".Length..], out _) ||
+            !string.Equals(Path.GetDirectoryName(folder)?.TrimEnd(Path.DirectorySeparatorChar), Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) return false;
+        string incoming = path + ".writing-" + Guid.NewGuid().ToString("N");
+        try { File.WriteAllText(incoming, nonce); File.Move(incoming, path, true); return true; }
+        catch (IOException) { return false; } catch (UnauthorizedAccessException) { return false; }
+        finally { try { if(File.Exists(incoming))File.Delete(incoming); } catch(IOException) {} catch(UnauthorizedAccessException) {} }
+    }
+    internal static void RemoveLegacyBackups()
+    {
+        string? target = Environment.ProcessPath; if(target==null)return;
+        string folder=Path.GetDirectoryName(target)!;
+        string pattern="^"+Regex.Escape(Path.GetFileName(target))+@"\.previous-\d{8}T\d{9}\.exe$";
+        try {
+            foreach(string file in Directory.EnumerateFiles(folder)) {
+                if(!Regex.IsMatch(Path.GetFileName(file),pattern)||File.GetAttributes(file).HasFlag(FileAttributes.ReparsePoint))continue;
+                if(FileVersionInfo.GetVersionInfo(file).ProductName!="EdgeLink")continue;
+                try {File.Delete(file);} catch(IOException) {} catch(UnauthorizedAccessException) {}
+            }
+        } catch(IOException) {} catch(UnauthorizedAccessException) {}
+    }
     internal const string InstallerScript = """
-param([int]$ParentId, [string]$Target, [string]$Staged)
+param([int]$ParentId, [string]$Target, [string]$Staged, [string]$ExpectedHash)
 $ErrorActionPreference = 'Stop'
 $log = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'EdgeLink/update.log'
 $incoming = $Target + '.incoming-' + [Guid]::NewGuid().ToString('N')
-$backup = $Target + '.previous-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '.exe'
-$moved = $false
+$folder = [IO.Path]::GetDirectoryName($Staged)
+$nonce = [Guid]::NewGuid().ToString('N')
+$ready = Join-Path $folder ('ready-' + $nonce + '.txt')
+$committed = $false
+$exitCode = 0
+$launched = $null
 try {
   try { $parent = [Diagnostics.Process]::GetProcessById($ParentId) } catch { $parent = $null }
   if ($parent -and -not $parent.WaitForExit(30000)) { throw 'Application did not exit' }
   [IO.File]::Copy($Staged, $incoming, $false)
-  if ((Get-FileHash -LiteralPath $Staged -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $incoming -Algorithm SHA256).Hash) { throw 'Copied file hash mismatch' }
-  [IO.File]::Move($Target, $backup)
-  $moved = $true
-  [IO.File]::Move($incoming, $Target)
+  if ($ExpectedHash -notmatch '^[a-fA-F0-9]{64}$' -or $ExpectedHash -ne (Get-FileHash -LiteralPath $incoming -Algorithm SHA256).Hash) { throw 'Prepared file hash mismatch' }
+  [IO.File]::Replace($incoming, $Target, [NullString]::Value)
+  $committed = $true
   [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($log)) | Out-Null
   [IO.File]::WriteAllText($log, 'Update installed successfully')
-  Start-Process -FilePath $Target -WorkingDirectory ([IO.Path]::GetDirectoryName($Target))
+  $launched = Start-Process -FilePath $Target -WorkingDirectory ([IO.Path]::GetDirectoryName($Target)) -ArgumentList @('--update-ready', ('"' + $ready + '"'), $nonce) -PassThru
+  $deadline = [DateTime]::UtcNow.AddSeconds(30)
+  while ([DateTime]::UtcNow -lt $deadline) {
+    if ([IO.File]::Exists($ready) -and [IO.File]::ReadAllText($ready) -eq $nonce) { break }
+    if ($launched.HasExited) { throw 'New application exited before confirming startup' }
+    Start-Sleep -Milliseconds 100
+  }
+  if (-not [IO.File]::Exists($ready) -or [IO.File]::ReadAllText($ready) -ne $nonce) { throw 'New application did not confirm startup' }
 } catch {
-  if ($moved -and [IO.File]::Exists($backup)) { [IO.File]::Copy($backup, $Target, $true) }
+  $exitCode = 1
+  $failure = $_.Exception.Message
+  if ($launched -and -not $launched.HasExited) { $launched.Kill(); $launched.WaitForExit(10000) | Out-Null }
   [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($log)) | Out-Null
-  [IO.File]::WriteAllText($log, $_.Exception.Message)
-  Add-Type -AssemblyName System.Windows.Forms
-  [Windows.Forms.MessageBox]::Show('EdgeLink update failed. Previous version was preserved. ' + $_.Exception.Message, 'EdgeLink') | Out-Null
-  if ([IO.File]::Exists($Target)) { Start-Process -FilePath $Target }
+  [IO.File]::WriteAllText($log, $failure)
+  if ($env:OS -eq 'Windows_NT') {
+    Add-Type -AssemblyName System.Windows.Forms
+    [Windows.Forms.MessageBox]::Show('EdgeLink update failed. ' + $failure, 'EdgeLink') | Out-Null
+  }
+  if (-not $committed -and [IO.File]::Exists($Target)) { Start-Process -FilePath $Target }
 } finally {
   if ([IO.File]::Exists($incoming)) { [IO.File]::Delete($incoming) }
+  if ([IO.Directory]::Exists($folder)) { [IO.Directory]::Delete($folder, $true) }
 }
+exit $exitCode
 """;
 }

@@ -77,7 +77,18 @@ if let path = ProcessInfo.processInfo.environment["INSTALLER_SCRIPT_EXPORT"] { t
 let checkDiscovery = ProcessInfo.processInfo.environment["EDGELINK_SKIP_DISCOVERY_CHECK"] != "1"
 let discovery = DiscoveryServer(); if checkDiscovery { try discovery.start(ip: "127.0.0.1", key: master) }
 let input = InputReceiver()
-let server = LinkServer(input: input)
+let idleServer = LinkServer(input: input)
+for _ in 0..<10 {
+    try idleServer.start(ip: "127.0.0.1", peerIP: "127.0.0.1", master: master, displayWidth: 1920, displayHeight: 1080)
+    Thread.sleep(forTimeInterval: 0.15)
+    idleServer.stop()
+}
+print("PASS: idle listener stop / restart releases ports in 10 cycles without any client")
+var interruptNextAccept = true
+let server = LinkServer(input: input, acceptConnection: { fd, address, size in
+    if interruptNextAccept { interruptNextAccept = false; errno = EINTR; print("PASS: injecting an interrupted accept before the real handshake"); return -1 }
+    return Darwin.accept(fd, address, size)
+})
 server.audioBatchFrames = { 1024 }
 server.status = { print($0); fflush(stdout) }
 try server.start(ip: "127.0.0.1", peerIP: "127.0.0.1", master: master, displayWidth: 1920, displayHeight: 1080)

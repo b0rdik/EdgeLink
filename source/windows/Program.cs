@@ -34,6 +34,7 @@ public sealed partial class App:Application
     protected override void OnLaunched(LaunchActivatedEventArgs args) {
         window=new MainWindow(Program.Diagnostic,Program.Has("--tray-checks"));
         window.Activate();
+        window.StartServices();
     }
 }
 
@@ -53,6 +54,8 @@ public sealed partial class MainWindow:Window
     private readonly CancellationTokenSource updateCancellation=new();
     private ReleaseUpdate? availableUpdate;
     private bool manuallyPaused,updating,installing,connecting,started;
+    private bool updateReadyReported;
+    private bool legacyBackupCleanupStarted;
     private readonly DispatcherQueueTimer reconnectTimer,refresh;
     private readonly List<(string name,string id)> devices=[];
     private Input? input;
@@ -94,20 +97,32 @@ public sealed partial class MainWindow:Window
         gain.ValueChanged+=(_,_)=>{if(double.IsNaN(gain.Value))gain.Value=1;};
         protectFullscreen.Checked+=(_,_)=>ApplyFullscreenProtection();
         protectFullscreen.Unchecked+=(_,_)=>ApplyFullscreenProtection();
-        Root.Loaded+=async (_,_)=>await Start();
+        // Diagnostics need a loaded XAML tree. Ordinary connection/input startup
+        // must also work if the window is hidden before Root.Loaded is delivered.
+        Root.Loaded+=async (_,_)=>{if(Program.Diagnostic)await Start();};
         Closed+=(_,_)=> {
             IsDisposed=true;updateCancellation.Cancel();reconnectTimer.Stop();refresh.Stop();
             Disconnect();input?.Dispose();DisposeTray();if(!previewMode)SaveSettings();
         };
     }
     internal void BeginInvoke(Action action){if(!IsDisposed)DispatcherQueue.TryEnqueue(()=>{if(!IsDisposed)action();});}
+    internal void StartServices(){if(!Program.Diagnostic)_=Start();}
+    private bool EnsureInput() {
+        try{
+            if(input==null){input=new Input(BeginInvoke);input.SetFullscreenProtection(protectFullscreen.CheckedValue);input.Changed+=UpdateStatus;}
+            if(!updateReadyReported)updateReadyReported=Updates.ReportReady(Program.Arguments);
+            if(updateReadyReported&&!legacyBackupCleanupStarted){legacyBackupCleanupStarted=true;_=Task.Run(Updates.RemoveLegacyBackups);}
+            return true;
+        }
+        catch(Exception e){input?.Dispose();input=null;lastError="Обработка ввода: "+e.Message;status.Text=lastError;return false;}
+    }
     private async Task Start() {
         if(started)return;started=true;
         if(Program.Has("--layout-checks")){Environment.ExitCode=await LayoutChecks.Run(this);ExitFromTray();return;}
         if(Program.Has("--tray-checks")){Environment.ExitCode=await TrayChecks.Run(this);ExitFromTray();return;}
         if(Program.Has("--fullscreen-checks")){Environment.ExitCode=await FullscreenChecks.Run(this);ExitFromTray();return;}
         if(previewMode)return;
-        try{input=new Input(BeginInvoke);input.SetFullscreenProtection(protectFullscreen.CheckedValue);input.Changed+=UpdateStatus;}catch(Exception e){status.Text=e.Message;connect.IsEnabled=false;}
+        EnsureInput();
         SingleInstance.StartServer(this,updateCancellation.Token);RegisterPairingType();_ = CheckUpdates(false);
         reconnectTimer.Start();
         string[] args=Program.Arguments;
@@ -125,7 +140,7 @@ public sealed partial class MainWindow:Window
         else if(!needed&&refresh.IsRunning)refresh.Stop();
     }
     private async Task<bool> ConfirmUpdate(ReleaseUpdate update) {
-        var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает обновление из b0rdik/EdgeLink, проверит SHA-256 и перезапустится. Предыдущая версия сохранится рядом с приложением.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=ElementTheme.Dark};
+        var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=ElementTheme.Dark};
         return await dialog.ShowAsync()==ContentDialogResult.Primary;
     }
 }

@@ -42,7 +42,8 @@ using (var idleStop = new CancellationTokenSource()) {
     Check(idle.IsCanceled, "disconnect cancels sleeping mouse sender");
 }
 // Warm channel/monitor paths before measuring the synchronous publishing loop.
-for (int i = 0; i < 1000; i++) mailbox.Publish(1, 0, 0);
+// Warm tiered JIT/monitor state before the allocation measurement itself.
+for (int i = 0; i < 100000; i++) mailbox.Publish(1, 0, 0);
 await mailbox.Wait(CancellationToken.None); mailbox.TakeLatest();
 long beforeMoves = GC.GetAllocatedBytesForCurrentThread();
 for (int i = 0; i < 100000; i++) mailbox.Publish(9, i, -i);
@@ -50,7 +51,7 @@ long moveAllocations = GC.GetAllocatedBytesForCurrentThread() - beforeMoves;
 Console.WriteLine($"Mouse publishing allocation measurement: {moveAllocations} bytes for 100000 movements");
 await mailbox.Wait(CancellationToken.None);
 var latestMove = mailbox.TakeLatest();
-Check(latestMove is { Epoch: 9, Sequence: 101000, X: 99999, Y: -99999 }, "100000 high-rate movements coalesce to the latest position and sequence");
+Check(latestMove is { Epoch: 9, Sequence: 200000, X: 99999, Y: -99999 }, "100000 high-rate movements coalesce to the latest position and sequence");
 Check(moveAllocations < 4096, "high-rate movement publishing avoids per-event allocations");
 Check(mailbox.TakeLatest() == null, "mouse mailbox retains no backlog after consumption");
 var concurrentMoves = new MouseMailbox();
@@ -164,6 +165,7 @@ try {
     }
 } finally { Directory.Delete(scratch, true); }
 
+await RecoveryCheck.Run(Check);
 if(args.Contains("--ui-loop-check"))Check(await UiLoopCheck.Run(),"encrypted UDP audio and mouse progress during a 500 ms UI stall");
 
 if (args.Contains("--integration"))

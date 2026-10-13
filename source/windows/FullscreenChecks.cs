@@ -19,6 +19,8 @@ internal static class FullscreenChecks
             using var input=new Input(_=>{});
             using var link=new Link(10);
             var screen=Desktop.PrimaryScreen.Bounds;
+            if(ForegroundGuard.IsFullscreen(Native.GetShellWindow(),screen)||ForegroundGuard.IsFullscreen(Native.GetDesktopWindow(),screen))throw new Exception("Desktop incorrectly blocks screen transfers.");
+            results.Add(new {check="Windows desktop/shell never counts as a fullscreen game",pass=true});
             var unreachable=new Rectangle(100000,100000,1000,1000);
             input.Configure(link,unreachable,"left",true,1);
             input.ProbeProtectionScreen(screen);

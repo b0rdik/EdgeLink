@@ -47,7 +47,10 @@ final class AudioSender: NSObject, SCStreamOutput, SCStreamDelegate {
         queue.sync { if udp >= 0 { close(udp); udp = -1 }; accumulated.removeAll(); lastPTS = nil }
     }
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        DispatchQueue.main.async { [weak self] in self?.isCapturing = false; self?.failed?("Захват звука остановлен: \(error.localizedDescription)") }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.stream === stream else { return }
+            self.isCapturing = false; self.failed?("Захват звука остановлен: \(error.localizedDescription)")
+        }
     }
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         if type == .audio, CMSampleBufferDataIsReady(sampleBuffer) {

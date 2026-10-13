@@ -26,6 +26,9 @@ internal static class Native
     [DllImport("user32", SetLastError = true)] public static extern nuint SetTimer(nint window, nuint id, uint milliseconds, nint callback);
     [DllImport("user32")] public static extern bool KillTimer(nint window, nuint id);
     [DllImport("user32")] public static extern nint GetForegroundWindow();
+    [DllImport("user32")] public static extern nint GetShellWindow();
+    [DllImport("user32")] public static extern nint GetDesktopWindow();
+    [DllImport("user32", CharSet = CharSet.Unicode)] public static extern int GetClassName(nint window, System.Text.StringBuilder name, int capacity);
     [DllImport("user32")] public static extern uint GetWindowThreadProcessId(nint window, out uint process);
     [DllImport("user32")] public static extern bool ClientToScreen(nint window, ref Point point);
     [DllImport("user32", SetLastError = true)] public static extern nint SetWinEventHook(uint min, uint max, nint module, WinEvent callback, uint process, uint thread, uint flags);

@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var initialSetupApplied = false
     private var loadingSecret = false
     private var automaticPaused = false
+    private let connectionAttempt = ConnectionAttempt()
+    private var startingIP: String?
     private var retryAfter = Date.distantPast
     private var boundIP = ""
     private var audioProbeValidUntil = Date.distantPast
@@ -75,21 +77,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         loadPairingSecret()
         server.audioBatchFrames = { [weak self] in self?.audio.captureBatchFrames ?? 0 }
         server.status = { [weak self] text in guard let self else { return }; state.status = text; state.connected = server.currentSession != nil; refreshOutputMute() }
+        server.failed = { [weak self] text in
+            guard let self, running else { return }
+            let paused = automaticPaused; stopLink(); automaticPaused = paused
+            retryAfter = Date(timeIntervalSinceNow: 2); state.status = text
+        }
         audio.failed = { [weak self] text in
             guard let self else { return }; let paused = automaticPaused; stopLink(); automaticPaused = paused
             retryAfter = Date(timeIntervalSinceNow: 10); state.status = text
         }
-        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(suspendLink), name: NSWorkspace.willSleepNotification, object: nil)
-        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(suspendLink), name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(willSleep), name: NSWorkspace.willSleepNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sessionInactive), name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
         input.changed = { [weak self] active in self?.state.controlled = active }
         NotificationCenter.default.addObserver(self, selector: #selector(refreshSetup), name: NSApplication.didBecomeActiveNotification, object: nil)
-        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(resumeLink), name: NSWorkspace.didWakeNotification, object: nil)
-        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(resumeLink), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sessionActive), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
         monitor = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.refreshSetup() }
         if let monitor { RunLoop.main.add(monitor, forMode: .common) }
         refreshSetup()
         if state.tab == 1 && !state.localIP.isEmpty { state.step = state.inputAllowed && state.audioAllowed ? 2 : 1 }
         checkUpdates(manual: false)
+        Updates.reportReady()
+        Task.detached(priority: .utility) { Updates.removeLegacyBackups() }
     }
     private func configureActions() {
         state.onMuteChange = { [weak self] in self?.refreshOutputMute() }
@@ -186,7 +195,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if running && (!state.inputAllowed || !state.audioAllowed || (state.automatic && boundIP != state.localIP)) {
             stopLink(); automaticPaused = false
         }
-        if state.autoStart && !automaticPaused && !running && !busy && !updating && state.ready && Date() >= retryAfter { toggle() }
+        if state.automatic, let startingIP, startingIP != state.localIP { connectionAttempt.cancel() }
+        if state.autoStart && !automaticPaused && !connectionAttempt.suspended && !running && !busy && !updating && state.ready && Date() >= retryAfter { toggle() }
     }
     private func loadPairingSecret() {
         guard !preview && !loadingSecret else { return }; loadingSecret = true
@@ -239,7 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func offerUpdate(_ update: ReleaseUpdate) {
         guard !updating && !busy else { state.updateStatus = "Дождитесь завершения текущей операции"; return }
         let alert = NSAlert(); alert.messageText = "Установить EdgeLink \(update.version)?"
-        alert.informativeText = "Приложение скачает обновление из b0rdik/EdgeLink, проверит SHA-256 и перезапустится. Предыдущая версия сохранится рядом с приложением."
+        alert.informativeText = "Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются."
         alert.addButton(withTitle: "Установить"); alert.addButton(withTitle: "Позже")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         updating = true; state.updateStatus = "Скачивание и проверка обновления…"
@@ -302,47 +312,66 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggle() {
         guard !busy && !updating else { return }
         if running { stopLink(); return }
+        guard !connectionAttempt.suspended else { state.status = "Связь возобновится после пробуждения и разблокировки Mac."; return }
         guard Permissions.inputAllowed else { state.status = "Разрешите EdgeLink управление компьютером в настройках конфиденциальности macOS."; return }
         guard let secret else { state.status = "Ключ сопряжения недоступен."; return }
         input.display = state.selectedDisplay
         busy = true
         state.status = "Запуск захвата звука…"
         let ip = state.localIP.trimmingCharacters(in: .whitespacesAndNewlines)
+        let attempt = connectionAttempt.begin(); startingIP = ip
         let peer = state.automatic ? "" : state.pcIP.trimmingCharacters(in: .whitespacesAndNewlines)
         Task { @MainActor in
             do {
                 // Capture permission / format is resolved before accepting a Windows client.
                 try await audio.start(ip: ip, displayID: input.display)
+                guard connectionAttempt.isCurrent(attempt) else {
+                    await audio.stop(); startingIP = nil; busy = false; refreshSetup(); return
+                }
                 try server.start(ip: ip, peerIP: peer, master: secret, displayWidth: input.bounds.width, displayHeight: input.bounds.height)
                 try discovery.start(ip: ip, key: secret)
                 boundIP = ip; running = true; state.audioAllowed = true
                 UserDefaults.standard.set(ip, forKey: "localIP"); UserDefaults.standard.set(peer, forKey: "pcIP")
             } catch {
-                server.stop(); discovery.stop(); await audio.stop(); state.status = "Ошибка: \(error.localizedDescription)"
-                retryAfter = Date(timeIntervalSinceNow: 10)
+                server.stop(); discovery.stop(); await audio.stop()
+                if connectionAttempt.isCurrent(attempt) {
+                    state.status = "Ошибка: \(error.localizedDescription)"; retryAfter = Date(timeIntervalSinceNow: 10)
+                }
             }
-            busy = false
+            startingIP = nil; busy = false; refreshSetup()
         }
     }
     @objc private func stopLink() {
+        connectionAttempt.cancel()
         outputMute.update(connected: false, enabled: state.muteMac); state.audioHint = outputMute.hint
         automaticPaused = true; state.connected = false
-        guard running && !busy else { return }
+        if busy { running = false; server.stop(); discovery.stop(); return }
+        guard running else { return }
         running = false; busy = true
         server.stop(); discovery.stop()
         Task { @MainActor in
             await audio.stop(); busy = false; state.status = "Остановлено"
         }
     }
-    @objc private func suspendLink() {
+    private func suspendLink() {
         let paused = automaticPaused; stopLink(); automaticPaused = paused
         retryAfter = Date.distantFuture
     }
-    @objc private func resumeLink() { retryAfter = Date(); refreshSetup() }
+    @objc private func willSleep() { connectionAttempt.setSleeping(true); suspendLink() }
+    @objc private func sessionInactive() { connectionAttempt.setInactive(true); suspendLink() }
+    @objc private func didWake() { connectionAttempt.setSleeping(false); retryAfter = Date(); refreshSetup() }
+    @objc private func sessionActive() { connectionAttempt.setInactive(false); retryAfter = Date(); refreshSetup() }
     @objc private func quit() { outputMute.restore(); server.stop(); discovery.stop(); NSApp.terminate(nil) }
     func applicationWillTerminate(_ notification: Notification) { keepAwake.setEnabled(false); outputMute.restore(); updateTask?.cancel(); monitor?.invalidate(); server.stop(); discovery.stop() }
 }
 
+if CommandLine.arguments.count > 1 && CommandLine.arguments[1] == "--replace-bundle" {
+    do {
+        guard CommandLine.arguments.count == 4 else { throw LinkError.message("Неверные аргументы замены") }
+        try Updates.replaceBundle(URL(fileURLWithPath: CommandLine.arguments[2]), target: URL(fileURLWithPath: CommandLine.arguments[3]))
+        exit(0)
+    } catch { fputs("Замена не выполнена: \(error.localizedDescription)\n", stderr); exit(1) }
+}
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate

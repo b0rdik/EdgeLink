@@ -105,7 +105,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     }
     private async Task Connect()
     {
-        if (connecting || input == null || installing || IsDisposed) return;
+        if (connecting || installing || IsDisposed || !EnsureInput()) return;
         connecting = true; connect.IsEnabled = false; lastError = ""; status.Text = "Подключение…"; UpdateWizard();
         Link? candidate = null;
         try
@@ -113,7 +113,8 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             if (automatic.CheckedValue)
             {
                 status.Text = "Ищем ваш Mac по Ethernet…";
-                var found = await Discovery.Find(pairing.Password, updateCancellation.Token);
+                string savedKey = pairing.Password;
+                var found = await Task.Run(() => Discovery.Find(savedKey, updateCancellation.Token), updateCancellation.Token);
                 if (IsDisposed) throw new OperationCanceledException();
                 if (found == null) throw new IOException("Mac пока не найден. Проверьте кабель, разрешения Mac и firewall Windows.");
                 local.Text = found.LocalIP; remote.Text = found.MacIP;
@@ -127,10 +128,14 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
             using var enumerator = new MMDeviceEnumerator();
             string id = devices[device.SelectedIndex].id;
             endpoint = id == "" ? enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia) : enumerator.GetDevice(id);
-            output = new WasapiOut(endpoint, AudioClientShareMode.Shared, true, 10);
-            output.Init(candidate.Audio);
-            output.PlaybackStopped += (_, e) => { if (e.Exception != null && !IsDisposed) BeginInvoke(() => { lastError = "Аудиовыход: " + e.Exception.Message; Disconnect(); }); };
-            output.Play();
+            var candidateOutput = new WasapiOut(endpoint, AudioClientShareMode.Shared, true, 10);
+            output = candidateOutput;
+            candidateOutput.Init(candidate.Audio);
+            candidateOutput.PlaybackStopped += (_, e) => { if (e.Exception != null && !IsDisposed) BeginInvoke(() => {
+                if (!ReferenceEquals(output, candidateOutput) || !ReferenceEquals(link, candidate)) return;
+                lastError = "Аудиовыход: " + e.Exception.Message; Disconnect();
+            }); };
+            candidateOutput.Play();
             if (!candidate.IsAlive) throw new IOException("Соединение потеряно во время запуска.");
             link = candidate;
             connectingLink = null;
@@ -154,7 +159,7 @@ New-NetFirewallRule -DisplayName 'EdgeLink discovery (Ethernet)' -Direction Inbo
     { foreach (var field in new Control[] { local, remote, pairing, side, screen, device, wizardDevice, wizardSide, jitter, mouseRate, gain, swap, automatic, importPairing }) field.IsEnabled = enabled; local.IsEnabled = remote.IsEnabled = enabled && !automatic.CheckedValue; }
     private void UpdateStatus()
     {
-        status.Text = link == null ? (lastError == "" ? "Подключите Mac по Ethernet, чтобы начать работу." : lastError) : input?.Active == true ? "Мышь и клавиатура управляют Mac. Звук передаётся в наушники ПК." : "Mac и ПК соединены. Звук передаётся в наушники ПК.";
+        status.Text = link == null ? (lastError == "" ? "Подключите Mac по Ethernet, чтобы начать работу." : lastError) : input?.Active == true ? "Мышь и клавиатура управляют Mac. Звук передаётся в наушники ПК." : input?.FullscreenBlocked == true ? "Связь активна. Переходы приостановлены для полноэкранного приложения; звук продолжает работать." : "Mac и ПК соединены. Звук передаётся в наушники ПК.";
         connect.Style = link == null ? (Microsoft.UI.Xaml.Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] : null;
         if (link == null) stats.Text = "Нет активного соединения.";
         UpdateWizard(); UpdateTrayStatus();

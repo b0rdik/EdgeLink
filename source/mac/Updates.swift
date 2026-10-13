@@ -126,32 +126,72 @@ enum Updates {
         let folder = staged.deletingLastPathComponent().deletingLastPathComponent()
         let script = folder.appendingPathComponent("install.sh")
         try installerScript.write(to: script, atomically: true, encoding: .utf8)
-        let backup = target.deletingPathExtension().path + ".previous-" + UUID().uuidString + ".app"
+        let nonce = UUID().uuidString
+        let ready = folder.appendingPathComponent("ready-" + nonce + ".txt")
         let log = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/EdgeLink-update.log")
         let process = Process(); process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = [script.path, String(getpid()), staged.path, target.path, backup, log.path]
+        process.arguments = [script.path, String(getpid()), staged.path, target.path, log.path, ready.path, nonce, folder.path]
         try process.run(); return process
+    }
+    static func replaceBundle(_ incoming: URL, target: URL) throws {
+        guard incoming.pathExtension == "app", target.pathExtension == "app", incoming.standardizedFileURL != target.standardizedFileURL else {
+            throw LinkError.message("Неверные пути замены приложения")
+        }
+        // FileManager commits the replacement without a named backup item.
+        _ = try FileManager.default.replaceItemAt(target, withItemAt: incoming, backupItemName: nil, options: .usingNewMetadataOnly)
+    }
+    static func reportReady(_ arguments: [String] = CommandLine.arguments) {
+        guard let index = arguments.firstIndex(of: "--update-ready"), arguments.count > index + 2,
+              UUID(uuidString: arguments[index + 2]) != nil else { return }
+        let nonce = arguments[index + 2], url = URL(fileURLWithPath: arguments[index + 1]).standardizedFileURL
+        let folder = url.deletingLastPathComponent()
+        guard url.lastPathComponent == "ready-" + nonce + ".txt",
+              folder.lastPathComponent.hasPrefix("EdgeLink-update-"),
+              UUID(uuidString: String(folder.lastPathComponent.dropFirst("EdgeLink-update-".count))) != nil,
+              folder.deletingLastPathComponent().resolvingSymlinksInPath() == FileManager.default.temporaryDirectory.resolvingSymlinksInPath() else { return }
+        try? Data(nonce.utf8).write(to: url, options: .atomic)
+    }
+    @discardableResult
+    static func removeLegacyBackups(target: URL = Bundle.main.bundleURL) -> Int {
+        let fm = FileManager.default, parent = target.deletingLastPathComponent()
+        let prefix = target.deletingPathExtension().lastPathComponent + ".previous-"
+        var removed = 0
+        for candidate in (try? fm.contentsOfDirectory(at: parent, includingPropertiesForKeys: [.isSymbolicLinkKey, .isDirectoryKey])) ?? [] {
+            let name = candidate.lastPathComponent
+            guard name.hasPrefix(prefix), name.hasSuffix(".app"),
+                  UUID(uuidString: String(name.dropFirst(prefix.count).dropLast(4))) != nil,
+                  let values = try? candidate.resourceValues(forKeys: [.isSymbolicLinkKey, .isDirectoryKey]),
+                  values.isDirectory == true, values.isSymbolicLink != true,
+                  Bundle(url: candidate)?.bundleIdentifier == "local.edgelink.mac" else { continue }
+            do { try fm.removeItem(at: candidate); removed += 1 }
+            catch { NSLog("EdgeLink: previous update copy could not be removed: %@", error.localizedDescription) }
+        }
+        return removed
     }
     static let installerScript = #"""
 #!/bin/bash
 set -eu
-parent="$1"; staged="$2"; target="$3"; backup="$4"; log="$5"
+parent="$1"; staged="$2"; target="$3"; log="$4"; ready="$5"; nonce="$6"; folder="$7"
 incoming="${target}.incoming-$$.app"
-moved=0
-rollback() {
+committed=0
+child=""
+finish() {
   code=$?
   if [ "$code" -ne 0 ]; then
-    if [ "$moved" -eq 1 ] && [ -d "$backup" ]; then
-      if [ -d "$target" ]; then /bin/mv "$target" "${target}.failed-$$.app"; fi
-      /bin/mv "$backup" "$target"
+    if [ -n "$child" ]; then
+      /bin/kill "$child" 2>/dev/null || true
+      for i in $(/usr/bin/seq 1 20); do /bin/kill -0 "$child" 2>/dev/null || break; /bin/sleep 0.1; done
+      /bin/kill -9 "$child" 2>/dev/null || true
+      wait "$child" 2>/dev/null || true
     fi
-    /usr/bin/open "$target" || true
+    if [ "$committed" -eq 0 ]; then /usr/bin/open "$target" || true; fi
   fi
   if [ -d "$incoming" ]; then /bin/rm -rf "$incoming"; fi
+  /bin/rm -rf "$folder"
   exit "$code"
 }
 exec >> "$log" 2>&1
-trap rollback EXIT
+trap finish EXIT
 for i in $(/usr/bin/seq 1 300); do
   if ! /bin/kill -0 "$parent" 2>/dev/null; then break; fi
   /bin/sleep 0.1
@@ -159,10 +199,17 @@ done
 if /bin/kill -0 "$parent" 2>/dev/null; then echo 'Application did not exit'; exit 1; fi
 /usr/bin/ditto "$staged" "$incoming"
 /usr/bin/codesign --verify --deep --strict "$incoming"
-/bin/mv "$target" "$backup"
-moved=1
-/bin/mv "$incoming" "$target"
-/usr/bin/open "$target"
+"$target/Contents/MacOS/EdgeLink" --replace-bundle "$incoming" "$target"
+committed=1
+"$target/Contents/MacOS/EdgeLink" --update-ready "$ready" "$nonce" &
+child=$!
+confirmed=0
+for i in $(/usr/bin/seq 1 300); do
+  if [ -f "$ready" ] && [ "$(/bin/cat "$ready")" = "$nonce" ]; then confirmed=1; break; fi
+  if ! /bin/kill -0 "$child" 2>/dev/null; then echo 'New application exited before confirming startup'; exit 1; fi
+  /bin/sleep 0.1
+done
+if [ "$confirmed" -ne 1 ]; then echo 'New application did not confirm startup'; exit 1; fi
 echo 'Update installed successfully'
 """#
 }

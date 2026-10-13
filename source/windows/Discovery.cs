@@ -21,36 +21,48 @@ internal static class Discovery
             .Where(a => !a.gateway || a.address.ToString().StartsWith("169.254."))
             .OrderByDescending(a => a.address.ToString().StartsWith("169.254.")).ToArray();
         if (candidates.Length == 0) return null;
-        var probes = candidates.Select(async c =>
-        {
-            try
-            {
-                using var udp = new UdpClient(new IPEndPoint(c.address, 0)) { EnableBroadcast = true };
-                var ip = c.address.GetAddressBytes(); var mask = c.mask.GetAddressBytes();
-                byte[] broadcast = Enumerable.Range(0, 4).Select(i => (byte)(ip[i] | ~mask[i])).ToArray();
-                string nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-                byte[] data = JsonSerializer.SerializeToUtf8Bytes(new { type = "edgelink-discover", nonce });
-                await udp.SendAsync(data, new IPEndPoint(new IPAddress(broadcast), 48794), token);
-                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token); timeout.CancelAfter(1500);
-                while (!timeout.IsCancellationRequested)
-                {
-                    var response = await udp.ReceiveAsync(timeout.Token);
-                    if (response.Buffer.Length > 1024 || response.RemoteEndPoint.Port != 48794) continue;
-                    using var document = JsonDocument.Parse(response.Buffer); var root = document.RootElement;
-                    if (root.GetProperty("type").GetString() == "edgelink-mac" && root.GetProperty("protocol").GetInt32() == 1 &&
-                        root.GetProperty("nonce").GetString() == nonce && root.GetProperty("fingerprint").GetString() == fingerprint &&
-                        root.GetProperty("ip").GetString() == response.RemoteEndPoint.Address.ToString())
-                        return new EthernetPeer(c.address.ToString(), response.RemoteEndPoint.Address.ToString(), root.GetProperty("name").GetString() ?? "Mac");
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (SocketException) { }
-            catch (JsonException) { }
-            catch (KeyNotFoundException) { }
-            return null;
+        CryptographicOperations.ZeroMemory(key);
+        using var search = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var probes = candidates.Select(c => {
+            var ip = c.address.GetAddressBytes(); var mask = c.mask.GetAddressBytes();
+            byte[] broadcast = Enumerable.Range(0, 4).Select(i => (byte)(ip[i] | ~mask[i])).ToArray();
+            return Probe(c.address, new IPEndPoint(new IPAddress(broadcast), 48794), fingerprint, search.Token);
         }).ToList();
-        while (probes.Count > 0)
-        { var done = await Task.WhenAny(probes); probes.Remove(done); if (await done is { } found) return found; }
+        var pending = new List<Task<EthernetPeer?>>(probes);
+        try {
+            while (pending.Count > 0) {
+                var done = await Task.WhenAny(pending).ConfigureAwait(false); pending.Remove(done);
+                if (await done.ConfigureAwait(false) is { } found) return found;
+            }
+            return null;
+        } finally { search.Cancel(); await Task.WhenAll(probes).ConfigureAwait(false); }
+    }
+    // Retry a lost discovery datagram within the existing 1.5-second budget.
+    // Malformed/unrelated responses must not terminate this interface's search.
+    internal static async Task<EthernetPeer?> Probe(IPAddress local, IPEndPoint target, string fingerprint, CancellationToken token)
+    {
+        try {
+            using var udp = new UdpClient(new IPEndPoint(local, 0)) { EnableBroadcast = true };
+            string nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+            byte[] data = JsonSerializer.SerializeToUtf8Bytes(new { type = "edgelink-discover", nonce });
+            for (int attempt = 0; attempt < 3 && !token.IsCancellationRequested; attempt++) {
+                using var round = CancellationTokenSource.CreateLinkedTokenSource(token); round.CancelAfter(500);
+                await udp.SendAsync(data, target, round.Token).ConfigureAwait(false);
+                try {
+                    while (true) {
+                        var response = await udp.ReceiveAsync(round.Token).ConfigureAwait(false);
+                        if (response.Buffer.Length > 1024 || response.RemoteEndPoint.Port != target.Port) continue;
+                        try {
+                            using var document = JsonDocument.Parse(response.Buffer); var root = document.RootElement;
+                            if (root.GetProperty("type").GetString() == "edgelink-mac" && root.GetProperty("protocol").GetInt32() == 1 &&
+                                root.GetProperty("nonce").GetString() == nonce && root.GetProperty("fingerprint").GetString() == fingerprint &&
+                                root.GetProperty("ip").GetString() == response.RemoteEndPoint.Address.ToString())
+                                return new EthernetPeer(local.ToString(), response.RemoteEndPoint.Address.ToString(), root.GetProperty("name").GetString() ?? "Mac");
+                        } catch (JsonException) { } catch (KeyNotFoundException) { } catch (InvalidOperationException) { } catch (FormatException) { }
+                    }
+                } catch (OperationCanceledException) when (!token.IsCancellationRequested) { }
+            }
+        } catch (OperationCanceledException) { } catch (SocketException) { }
         return null;
     }
 }
