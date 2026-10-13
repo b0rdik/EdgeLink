@@ -1,7 +1,7 @@
 {
   "version": "1.0.2",
-  "sourceCommit": "3760b6ea596317509d318279fe00218ea272a2b0",
-  "binarySHA256": "4dcc0329b246f45010dab5221284717b91c5c9782c7e0f03bb41ec927dd0a3e6",
+  "sourceCommit": "8a04f4ed51f224a556931bc5110b07abfc9133f4",
+  "binarySHA256": "b316b1efaf4710b50c21381fdc9537385a6e538c0952e95d4605f9f8bd3f428b",
   "stableDesignatedRequirement": true,
   "strictCodesign": true,
   "backupCreated": false,
