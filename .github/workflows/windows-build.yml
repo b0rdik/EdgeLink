@@ -63,6 +63,10 @@ jobs:
             $report = Join-Path $env:TEMP "EdgeLink-$mode-checks.json"
             if ($mode -eq 'layout') { $report = Join-Path $env:TEMP 'EdgeLink-layout-checks/report.json' }
             if (Test-Path $report) { Copy-Item $report "reports/$mode.json" }
+            if ($mode -eq 'layout') {
+              New-Item reports/ui -ItemType Directory -Force | Out-Null
+              Copy-Item "$env:TEMP/EdgeLink-layout-checks/*.png" reports/ui/
+            }
           }
           if ($failed.Count) { throw ($failed -join '; ') }
       - name: Upload executable
