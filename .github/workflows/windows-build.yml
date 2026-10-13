@@ -7,6 +7,7 @@ on:
       - .github/workflows/windows-build.yml
       - source/windows/**
       - source/checks/**
+      - source/installer-checks/**
       - source/assets/**
       - source/build-windows.ps1
       - VERSION
@@ -37,8 +38,16 @@ jobs:
       - name: Check protocol, queues, discovery and update receipts
         shell: pwsh
         run: |
+          $env:WINDOWS_INSTALLER_SCRIPT_EXPORT = "$env:RUNNER_TEMP/install-windows.ps1"
           dotnet run --project source/checks/Checks.csproj -c Release -p:TreatWarningsAsErrors=true -- --ui-loop-check | Tee-Object reports/core.txt
           if ($LASTEXITCODE -ne 0) { throw 'Core checks failed' }
+      - name: Native PowerShell 5.1 and NTFS update replacement
+        shell: pwsh
+        run: |
+          dotnet publish source/installer-checks/Fixture.csproj -c Release -r win-x64 --self-contained false -p:TreatWarningsAsErrors=true -o "$env:RUNNER_TEMP/installer-fixture"
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture build failed' }
+          python source/installer-checks/check-windows.py "$env:RUNNER_TEMP/installer-fixture/EdgeLinkInstallerFixture.exe" "$env:RUNNER_TEMP/install-windows.ps1" reports/installer.json
+          if ($LASTEXITCODE -ne 0) { throw 'Installer checks failed' }
       - name: Native input, layout and tray checks
         shell: pwsh
         run: |
