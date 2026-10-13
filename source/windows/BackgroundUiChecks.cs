@@ -77,9 +77,12 @@ public sealed partial class MainWindow
             connectionDiagnostics.IsExpanded=true;await Settle();
             Check("Expanding diagnostics starts the actual timer",refresh.IsRunning);
             Check("First expansion immediately displays live counters",stats.Text.Contains("RTT: 17")&&stats.Text.Contains("пакеты: 0"));
+            var statsOrigin=stats.TransformToVisual(connectionDiagnostics).TransformPoint(new Windows.Foundation.Point(0,0));
+            Check("Expanded statistics aligns with panel padding instead of centering",statsOrigin.X<50&&stats.ActualWidth>=connectionDiagnostics.ActualWidth-100);
             Interlocked.Exchange(ref fixture.AudioPackets,100);Interlocked.Exchange(ref fixture.AudioBytes,100500);
             await Task.Delay(1150);
             Check("Dispatcher timer advances counters without manual refresh",stats.Text.Contains("пакеты: 100"));
+            await SaveConnectionSnapshot(Path.Combine(folder,"live-statistics-"+Root.ActualTheme.ToString().ToLowerInvariant()+".png"));
             SelectPage(2);await Settle();Check("Other page stops statistics",!refresh.IsRunning);
             SelectPage(0);await Settle();Check("Returning to connection resumes statistics",refresh.IsRunning);
             AppWindow.Hide();UpdateStatsTimer();Check("Hidden window stops statistics",!refresh.IsRunning);

@@ -20,7 +20,7 @@ public sealed partial class MainWindow
     private readonly TextBlock inputHint=Theme.Label("",13,muted:true);
     private readonly TextBlock keyboardStatus=Theme.Mono("Не подключено",12,muted:true),mouseStatus=Theme.Mono("Не подключено",12,muted:true),audioStatus=Theme.Mono("Не передаётся",12,muted:true);
     private readonly List<FontIcon> deviceStatusIcons=[];
-    private readonly Expander connectionDiagnostics=new() {Header="Диагностика соединения",HorizontalAlignment=HorizontalAlignment.Stretch};
+    private readonly Expander connectionDiagnostics=new() {Header="Диагностика соединения",HorizontalAlignment=HorizontalAlignment.Stretch,HorizontalContentAlignment=HorizontalAlignment.Stretch};
     private string devicePresentation="";
     private readonly TextBlock setupHint=Theme.Label("",14,muted:true);
     private readonly ActionButton setupNext=Theme.Button("Продолжить",true),setupBack=Theme.Button("Назад");
@@ -95,7 +95,7 @@ public sealed partial class MainWindow
         heading.Children.Add(connectionDot);Grid.SetColumn(connectionHeading,1);heading.Children.Add(connectionHeading);
         home.Children.Add(new StatusActionRow(heading,connect));status.FontSize=13;status.Foreground=Theme.Resource("TextFillColorSecondaryBrush");home.Children.Add(status);
         home.Children.Add(Divider());home.Children.Add(BuildDeviceStatus());home.Children.Add(Divider());
-        connectionDiagnostics.Content=Theme.Stack(stats);
+        connectionDiagnostics.Content=new Border {Padding=new Thickness(16),Child=Theme.Stack(stats)};
         connectionDiagnostics.RegisterPropertyChangedCallback(Expander.IsExpandedProperty,(_,_)=>UpdateStatsTimer());
         home.Children.Add(connectionDiagnostics);
         ToolTipService.SetToolTip(stats,"Обновляется каждую секунду. RTT — время ответа сети; полная задержка звука здесь не измеряется. Пакеты — полученные блоки звука с начала соединения.");
