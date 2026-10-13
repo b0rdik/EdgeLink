@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Text;
+using Microsoft.UI.Xaml.Markup;
 
 namespace EdgeLink;
 
@@ -17,14 +18,29 @@ internal sealed partial class SettingsCheckBox:CheckBox
 }
 internal static class Theme
 {
-    public static readonly SolidColorBrush Mint=new(Windows.UI.Color.FromArgb(255,89,226,199));
-    public static Brush Resource(string key)=>(Brush)Application.Current.Resources[key];
+    public static readonly SolidColorBrush Mint=new(Windows.UI.Color.FromArgb(255,38,107,84));
+    public static void SetAppearance(ElementTheme theme)=>Mint.Color=theme==ElementTheme.Dark?Windows.UI.Color.FromArgb(255,117,204,171):Windows.UI.Color.FromArgb(255,38,107,84);
+    public static TextBlock Mono(string text,double size=12,bool bold=false,bool muted=false) {
+        var label=Label(text,size,bold,muted);label.FontFamily=new FontFamily("Consolas");return label;
+    }
+    private static readonly StackPanel resourceProbes=new() {Visibility=Visibility.Collapsed};
+    private static readonly Dictionary<string,SolidColorBrush> themeBrushes=[];
+    public static void AttachResources(Panel root)=>root.Children.Add(resourceProbes);
+    public static Brush Resource(string key) {
+        if(themeBrushes.TryGetValue(key,out var brush))return brush;
+        // ThemeResource must resolve in the window's visual tree. Reading the
+        // application dictionary once freezes code-created views in its old theme.
+        var probe=(Border)XamlReader.Load("<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Background='{ThemeResource "+key+"}'/>");
+        brush=new SolidColorBrush(((SolidColorBrush)probe.Background).Color);themeBrushes.Add(key,brush);
+        probe.RegisterPropertyChangedCallback(Border.BackgroundProperty,(_,_)=>brush.Color=((SolidColorBrush)probe.Background).Color);
+        resourceProbes.Children.Add(probe);return brush;
+    }
     public static TextBlock Label(string text,double size=14,bool bold=false,bool muted=false)=>new() {
         Text=text,FontSize=size,FontWeight=bold?FontWeights.SemiBold:FontWeights.Normal,
         TextWrapping=TextWrapping.Wrap,Foreground=Resource(muted?"TextFillColorSecondaryBrush":"TextFillColorPrimaryBrush")
     };
     public static ActionButton Button(string text,bool primary=false) {
-        var button=new ActionButton {Text=text,MinHeight=40,Padding=new Thickness(18,8,18,8)};
+        var button=new ActionButton {Text=text,MinHeight=32,Padding=new Thickness(14,5,14,5)};
         if(primary)Primary(button);return button;
     }
     public static void Primary(ActionButton button)=>button.Style=(Style)Application.Current.Resources["AccentButtonStyle"];
@@ -32,10 +48,10 @@ internal static class Theme
         var stack=new StackPanel {Spacing=12};foreach(var child in children)stack.Children.Add(child);return stack;
     }
     public static Border Card(string title,string hint,params UIElement[] children) {
-        var stack=Stack();if(title.Length>0)stack.Children.Add(Label(title,19,true));
+        var stack=Stack();if(title.Length>0)stack.Children.Add(Label(title,15,true));
         if(hint.Length>0)stack.Children.Add(Label(hint,14,muted:true));
         foreach(var child in children)stack.Children.Add(child);
-        var card=new Border {Padding=new Thickness(22),CornerRadius=new CornerRadius(12),
+        var card=new Border {Padding=new Thickness(18),CornerRadius=new CornerRadius(6),
             Background=Resource("CardBackgroundFillColorDefaultBrush"),BorderBrush=Resource("CardStrokeColorDefaultBrush"),BorderThickness=new Thickness(1),Child=stack};
         if(title.Length>0)AutomationProperties.SetName(card,title);return card;
     }

@@ -80,13 +80,16 @@ public sealed partial class MainWindow
         // Keep DWM's native caption: WinUI's color-customized caption retains
         // close hover when Closing is cancelled and the window is hidden.
         AppWindow.TitleBar.ResetToDefault();
-        int dark=1,background=0x202020,text=0xf5f5f5;
-        DwmSetWindowAttribute(Handle,20,ref dark,sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE
-        DwmSetWindowAttribute(Handle,35,ref background,sizeof(int)); // DWMWA_CAPTION_COLOR
-        DwmSetWindowAttribute(Handle,36,ref text,sizeof(int)); // DWMWA_TEXT_COLOR
+        Root.ActualThemeChanged+=(_,_)=>ApplyCaptionTheme();ApplyCaptionTheme();
         double scale=Desktop.GetDpiForWindow(Handle)/96.0;var work=Desktop.PrimaryScreen.WorkingArea;
-        int width=Math.Min((int)(880*scale),work.Width),height=Math.Min((int)(900*scale),work.Height);
+        int width=Math.Min((int)(800*scale),work.Width),height=Math.Min((int)(740*scale),work.Height);
         AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(work.Left+(work.Width-width)/2,work.Top+(work.Height-height)/2,width,height));
+    }
+    private void ApplyCaptionTheme() {
+        int dark=Root.ActualTheme==Microsoft.UI.Xaml.ElementTheme.Dark?1:0,background=dark==1?0x202020:0xf3f3f3,text=dark==1?0xf5f5f5:0x202020;
+        DwmSetWindowAttribute(Handle,20,ref dark,sizeof(int));
+        DwmSetWindowAttribute(Handle,35,ref background,sizeof(int));
+        DwmSetWindowAttribute(Handle,36,ref text,sizeof(int));
     }
     private nint WindowMessage(nint window,uint message,nuint wParam,nint lParam,nuint id,nuint reference) {
         if(message==0x5)UpdateStatsTimer(); // WM_SIZE includes minimize and restore.

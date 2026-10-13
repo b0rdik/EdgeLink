@@ -6,13 +6,13 @@
    <ResourceDictionary.MergedDictionaries>
     <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
    </ResourceDictionary.MergedDictionaries>
-   <Color x:Key="SystemAccentColor">#59E2C7</Color>
-   <Color x:Key="SystemAccentColorLight1">#75E8D1</Color>
-   <Color x:Key="SystemAccentColorLight2">#A0F0E0</Color>
-   <Color x:Key="SystemAccentColorLight3">#D0F8F0</Color>
-   <Color x:Key="SystemAccentColorDark1">#39C6AA</Color>
-   <Color x:Key="SystemAccentColorDark2">#27927E</Color>
-   <Color x:Key="SystemAccentColorDark3">#1B6658</Color>
+   <Color x:Key="SystemAccentColor">#266B54</Color>
+   <Color x:Key="SystemAccentColorLight1">#4E9E7E</Color>
+   <Color x:Key="SystemAccentColorLight2">#75CCAB</Color>
+   <Color x:Key="SystemAccentColorLight3">#D7EFE4</Color>
+   <Color x:Key="SystemAccentColorDark1">#205A47</Color>
+   <Color x:Key="SystemAccentColorDark2">#194637</Color>
+   <Color x:Key="SystemAccentColorDark3">#123327</Color>
   </ResourceDictionary>
  </Application.Resources>
 </Application>

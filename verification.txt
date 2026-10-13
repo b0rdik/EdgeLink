@@ -1,3 +1,10 @@
+EdgeLink 1.0.2 release candidate — native terminal styling, 2026-10-13
+
+Windows source: 0c0c635ac7f5fab6cf11044d6a1ae8e1a19b1a9a; GitHub Actions run 38382420141 PASS. Native WinUI layout 111 cases / 0 failures / 96 DPI, input 15/15, tray 15/15, PowerShell 5.1 / NTFS installer 5/5, .NET core 43 PASS. Final EXE 234465327 bytes, SHA256 7e2e63cd98e1a2c9d81b8249b5b0b355c7d1542a69b61279ce31331e83ddef54. Both native themes inspected, mixed-theme candidate excluded.
+Mac installed source: 8a04f4ed51f224a556931bc5110b07abfc9133f4; files identical in Windows CI commit. Stable signature retained, strict codesign and icon audit 11/11 PASS, Swift/.NET checks 98 PASS (discovery skipped while installed app running). Native UI checked, sidebar removed at user request, top navigation approved by user. No new physical input/audio/gaming test is claimed. Reports: docs/validation/release-1.0.2-2026-10-13/.
+
+History:
+
 EdgeLink 1.0.0 working branch — native caption / tray hover fix, 2026-10-11
 
 Source / installed EXE: 2227741b2177c01318d1805ba3fe80f7d4703275; ProductVersion 1.0.0+2227741b2177c01318d1805ba3fe80f7d4703275. Physical Windows 11 Pro 25H2 / 96 DPI, SDK 10.0.401. Release self-contained win-x64 with warnings as errors: no warnings. EXE 234453039 bytes; SHA256 48e4a1420dfae087f35a60bd5cf3414d20f789dd4ada98abdb898cb66613313a. Previous desktop EXE backed up outside Git.

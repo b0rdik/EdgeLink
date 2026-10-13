@@ -50,7 +50,7 @@ public sealed partial class MainWindow:Window
     private readonly ActionButton importPairing=Theme.Button("Открыть файл подключения с Mac…"),firewall=Theme.Button("Разрешить соединение по Ethernet…");
     private readonly NumberBox gain=new(){Minimum=.1,Maximum=4,SmallChange=.1,Value=1,SpinButtonPlacementMode=NumberBoxSpinButtonPlacementMode.Inline};
     private readonly ActionButton connect=Theme.Button("Подключить",true),updateButton=Theme.Button("Проверить обновления");
-    private readonly TextBlock status=Theme.Label("Не подключено"),stats=Theme.Label("Нет активного соединения",14,muted:true),updateStatus=Theme.Label("",14,muted:true);
+    private readonly TextBlock status=Theme.Label("Не подключено"),stats=Theme.Mono("Нет активного соединения",12,muted:true),updateStatus=Theme.Label("",14,muted:true);
     private readonly CancellationTokenSource updateCancellation=new();
     private ReleaseUpdate? availableUpdate;
     private bool manuallyPaused,updating,installing,connecting,started;
@@ -135,12 +135,12 @@ public sealed partial class MainWindow:Window
         lastBytes=bytes;
     }
     private void UpdateStatsTimer() {
-        bool needed=!IsDisposed&&link!=null&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
-        if(needed&&!refresh.IsRunning)refresh.Start();
+        bool needed=!IsDisposed&&link!=null&&connectionDiagnostics.IsExpanded&&Desktop.IsWindowVisible(Handle)&&!Desktop.IsIconic(Handle);
+        if(needed&&!refresh.IsRunning){lastBytes=Interlocked.Read(ref link!.AudioBytes);lastRefresh=Stopwatch.GetTimestamp();refresh.Start();}
         else if(!needed&&refresh.IsRunning)refresh.Stop();
     }
     private async Task<bool> ConfirmUpdate(ReleaseUpdate update) {
-        var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=ElementTheme.Dark};
+        var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=$"Установить EdgeLink {update.Version}?",Content="Приложение скачает и проверит новую версию, заменит установленную и перезапустится. Старые версии и резервные копии не сохраняются.",PrimaryButtonText="Установить",CloseButtonText="Отмена",DefaultButton=ContentDialogButton.Close,RequestedTheme=Root.ActualTheme};
         return await dialog.ShowAsync()==ContentDialogResult.Primary;
     }
 }

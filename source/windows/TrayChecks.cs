@@ -19,7 +19,9 @@ public sealed partial class MainWindow
         // Local unconnected link: exercise only dashboard timer lifecycle, without
         // sockets, pairing, audio playback or input capture.
         using var fixtureLink=new Link(10);link=fixtureLink;UpdateStatsTimer();
-        Check("Visible connected dashboard runs statistics timer",refresh.IsRunning);
+        Check("Collapsed diagnostics does not run statistics timer",!refresh.IsRunning);
+        connectionDiagnostics.IsExpanded=true;UpdateStatsTimer();
+        Check("Visible expanded diagnostics runs statistics timer",refresh.IsRunning);
         Desktop.PostMessage(Handle,0x10,0,0);await Settle();Check("Window close hides without terminating",!IsDisposed&&!Desktop.IsWindowVisible(Handle));
         Check("Hidden dashboard stops statistics timer",!refresh.IsRunning);
         Check("Hidden dashboard keeps automatic reconnection timer",reconnectTimer.IsRunning);

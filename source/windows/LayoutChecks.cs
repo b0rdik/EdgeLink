@@ -22,7 +22,7 @@ public sealed partial class MainWindow
 {
     internal async Task VerifyLayouts(string folder,List<object> cases,List<string> failures) {
         (int width,int height)[] sizes=[(664,521),(800,600),(1060,760),(1400,900)];
-        automatic.CheckedValue=false;
+        automatic.CheckedValue=false;connectionDiagnostics.IsExpanded=true;
         // Exercise wrapping of live values without opening sockets or loading credentials.
         stats.Text="RTT: 123 мс · звук: 12,34 Мбит/с (IPv4)\nБуфер: 123,4 мс · запас: 120,0 мс · прерывания: 12345 · пакеты: 1234567890";
         for(int cycle=0;cycle<3;cycle++)foreach(var size in sizes) {
@@ -54,6 +54,24 @@ public sealed partial class MainWindow
             if(navBefore!=navAfter)failures.Add("Navigation moved after page changes");
             await CheckLayout($"{cycle}-{size.width}x{size.height}-rapid-navigation",folder,cases,failures,false);
         }
+        connectionDiagnostics.IsExpanded=false;side.SelectedIndex=0;SelectPage(0);
+        AppWindow.ResizeClient(new Windows.Graphics.SizeInt32(800,740));
+        status.Text="Подключите MacBook по Ethernet, чтобы начать работу.";UpdateWizard();await Settle();
+        await CheckLayout("home-default-800x740",folder,cases,failures,true);
+        // Theme changes exercise real WinUI resource resolution and native control rendering.
+        foreach(var theme in new[]{ElementTheme.Light,ElementTheme.Dark}) {
+            Root.RequestedTheme=theme;await Settle();
+            if(Root.Background is not SolidColorBrush background)failures.Add("Theme background is not a solid brush");
+            else {
+                bool light=(background.Color.R+background.Color.G+background.Color.B)>384;
+                if(light!=(theme==ElementTheme.Light))failures.Add("Background did not follow "+theme+" theme");
+                var foreground=(SolidColorBrush)connectionHeading.Foreground;
+                bool lightText=(foreground.Color.R+foreground.Color.G+foreground.Color.B)>384;
+                if(lightText==light)failures.Add("Connection text does not contrast with "+theme+" background");
+            }
+            await CheckLayout("home-"+theme.ToString().ToLowerInvariant()+"-800x740",folder,cases,failures,true);
+        }
+        Root.RequestedTheme=ElementTheme.Default;
     }
     internal async Task Settle(){Root.UpdateLayout();await Task.Delay(60);Root.UpdateLayout();}
     private async Task CheckLayout(string name,string folder,List<object> cases,List<string> failures,bool snapshot) {
