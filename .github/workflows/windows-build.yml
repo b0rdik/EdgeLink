@@ -79,6 +79,7 @@ jobs:
             throw 'Background UI checks timed out'
           }
           Copy-Item "$env:TEMP/EdgeLink-background-ui-checks/report.json" reports/background-ui.json
+          Copy-Item "$env:TEMP/EdgeLink-background-ui-checks/layout.json" reports/background-layout.json
           New-Item reports/ui-states -ItemType Directory -Force | Out-Null
           Copy-Item "$env:TEMP/EdgeLink-background-ui-checks/*.png" reports/ui-states/
           if ($process.ExitCode -ne 0) { throw 'Background UI checks failed' }

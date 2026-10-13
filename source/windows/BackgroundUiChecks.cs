@@ -18,7 +18,13 @@ internal static class BackgroundUiChecks
         var checks=new List<object>();var failures=new List<string>();
         try {
             await window.VerifyConnectionPresentation(folder,checks,failures);
-            if(await LayoutChecks.Run(window)!=0)failures.Add("Native layout checks failed; see EdgeLink-layout-checks/report.json.");
+            int layoutExit=await LayoutChecks.Run(window);
+            string layoutReport=Path.Combine(Path.GetTempPath(),"EdgeLink-layout-checks","report.json");
+            File.Copy(layoutReport,Path.Combine(folder,"layout.json"),true);
+            if(layoutExit!=0) {
+                using var report=JsonDocument.Parse(File.ReadAllText(layoutReport));
+                foreach(var failure in report.RootElement.GetProperty("Failures").EnumerateArray())failures.Add("Layout: "+failure.GetString());
+            }
         } catch(Exception error){failures.Add(error.ToString());}
         File.WriteAllText(Path.Combine(folder,"report.json"),JsonSerializer.Serialize(new {Version=Updates.CurrentVersion,Framework="WinUI 3",NoActivation=true,Checks=checks,Failures=failures},new JsonSerializerOptions {WriteIndented=true}));
         return failures.Count==0?0:1;
