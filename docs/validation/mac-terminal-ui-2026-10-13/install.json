@@ -1,0 +1,9 @@
+{
+  "version": "1.0.2",
+  "sourceCommit": "3760b6ea596317509d318279fe00218ea272a2b0",
+  "binarySHA256": "4dcc0329b246f45010dab5221284717b91c5c9782c7e0f03bb41ec927dd0a3e6",
+  "stableDesignatedRequirement": true,
+  "strictCodesign": true,
+  "backupCreated": false,
+  "installedPath": "/Applications/EdgeLink.app"
+}
