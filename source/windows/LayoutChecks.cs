@@ -61,6 +61,14 @@ public sealed partial class MainWindow
         // Theme changes exercise real WinUI resource resolution and native control rendering.
         foreach(var theme in new[]{ElementTheme.Light,ElementTheme.Dark}) {
             Root.RequestedTheme=theme;await Settle();
+            if(Root.Background is not SolidColorBrush background)failures.Add("Theme background is not a solid brush");
+            else {
+                bool light=(background.Color.R+background.Color.G+background.Color.B)>384;
+                if(light!=(theme==ElementTheme.Light))failures.Add("Background did not follow "+theme+" theme");
+                var foreground=(SolidColorBrush)connectionHeading.Foreground;
+                bool lightText=(foreground.Color.R+foreground.Color.G+foreground.Color.B)>384;
+                if(lightText==light)failures.Add("Connection text does not contrast with "+theme+" background");
+            }
             await CheckLayout("home-"+theme.ToString().ToLowerInvariant()+"-800x740",folder,cases,failures,true);
         }
         Root.RequestedTheme=ElementTheme.Default;

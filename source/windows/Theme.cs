@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Text;
+using Microsoft.UI.Xaml.Markup;
 
 namespace EdgeLink;
 
@@ -22,7 +23,18 @@ internal static class Theme
     public static TextBlock Mono(string text,double size=12,bool bold=false,bool muted=false) {
         var label=Label(text,size,bold,muted);label.FontFamily=new FontFamily("Consolas");return label;
     }
-    public static Brush Resource(string key)=>(Brush)Application.Current.Resources[key];
+    private static readonly StackPanel resourceProbes=new() {Visibility=Visibility.Collapsed};
+    private static readonly Dictionary<string,SolidColorBrush> themeBrushes=[];
+    public static void AttachResources(Panel root)=>root.Children.Add(resourceProbes);
+    public static Brush Resource(string key) {
+        if(themeBrushes.TryGetValue(key,out var brush))return brush;
+        // ThemeResource must resolve in the window's visual tree. Reading the
+        // application dictionary once freezes code-created views in its old theme.
+        var probe=(Border)XamlReader.Load("<Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Background='{ThemeResource "+key+"}'/>");
+        brush=new SolidColorBrush(((SolidColorBrush)probe.Background).Color);themeBrushes.Add(key,brush);
+        probe.RegisterPropertyChangedCallback(Border.BackgroundProperty,(_,_)=>brush.Color=((SolidColorBrush)probe.Background).Color);
+        resourceProbes.Children.Add(probe);return brush;
+    }
     public static TextBlock Label(string text,double size=14,bool bold=false,bool muted=false)=>new() {
         Text=text,FontSize=size,FontWeight=bold?FontWeights.SemiBold:FontWeights.Normal,
         TextWrapping=TextWrapping.Wrap,Foreground=Resource(muted?"TextFillColorSecondaryBrush":"TextFillColorPrimaryBrush")

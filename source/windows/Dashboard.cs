@@ -38,6 +38,7 @@ public sealed partial class MainWindow
     private readonly double[] pageOffsets=new double[3];
 
     private void BuildDashboard() {
+        Theme.AttachResources(Root);
         Root.Background=Theme.Resource("ApplicationPageBackgroundThemeBrush");
         Root.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});
         Root.RowDefinitions.Add(new RowDefinition {Height=new GridLength(1,GridUnitType.Star)});
@@ -73,9 +74,9 @@ public sealed partial class MainWindow
 
         var home=Page();
         var macContent=new StackPanel {Orientation=Orientation.Horizontal,Spacing=10,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};
-        macContent.Children.Add(new FontIcon {Glyph="\uE7F4",FontSize=22});macContent.Children.Add(Theme.Mono("MacBook",13,true));
+        macContent.Children.Add(new FontIcon {Glyph="\uE7F8",FontSize=22});macContent.Children.Add(Theme.Mono("MacBook",13,true));
         var pcContent=new StackPanel {Orientation=Orientation.Horizontal,Spacing=10,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};
-        pcContent.Children.Add(new FontIcon {Glyph="\uE7F8",FontSize=22});pcContent.Children.Add(Theme.Mono("ПК",13,true));
+        pcContent.Children.Add(new FontIcon {Glyph="\uE7F4",FontSize=22});pcContent.Children.Add(Theme.Mono("ПК",13,true));
         macTile.Child=macContent;pcTile.Child=pcContent;macTile.Padding=pcTile.Padding=new Thickness(16,8,16,8);
         macTile.Background=pcTile.Background=new SolidColorBrush(Microsoft.UI.Colors.Transparent);macTile.BorderThickness=pcTile.BorderThickness=new Thickness(0);
         hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(32)});hero.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(1,GridUnitType.Star)});
