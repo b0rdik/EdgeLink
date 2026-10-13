@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Package already built binaries for the version in VERSION. Run on macOS."""
-import pathlib, plistlib, re, zipfile, hashlib, struct, subprocess
+import argparse, pathlib, plistlib, re, zipfile, hashlib, struct, subprocess
 root = pathlib.Path(__file__).resolve().parent.parent
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--mac-app', type=pathlib.Path, default=root/'Mac/EdgeLink.app')
+parser.add_argument('--windows-exe', type=pathlib.Path, default=root/'Windows/EdgeLink.exe')
+parser.add_argument('--output', type=pathlib.Path, default=root/'releases')
+args = parser.parse_args()
 version = (root/'VERSION').read_text().strip()
 assert re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', version), 'Invalid VERSION'
-app = root/'Mac/EdgeLink.app'; exe = root/'Windows/EdgeLink.exe'
+app = args.mac_app; exe = args.windows_exe
+assert app.name == 'EdgeLink.app', 'Mac bundle must be named EdgeLink.app'
 with (app/'Contents/Info.plist').open('rb') as f: info = plistlib.load(f)
 assert info['CFBundleShortVersionString'] == version, 'Rebuild Mac'
 subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
@@ -33,7 +39,7 @@ def walk(relative, path):
             versions.append(struct.unpack_from('<II',data,signature+8))
 walk(0,[])
 assert versions and all(v == expected for v in versions), 'Rebuild Windows / native RT_VERSION differs'
-out=root/'releases'; out.mkdir(exist_ok=True)
+out=args.output; out.mkdir(parents=True,exist_ok=True)
 for name, files in [('EdgeLink-macos-arm64.zip',[(p,p.relative_to(app.parent).as_posix()) for p in sorted(app.rglob('*')) if p.is_file()]),('EdgeLink-windows-x64.zip',[(exe,'EdgeLink.exe')])]:
     with zipfile.ZipFile(out/name,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
         for path, entry in files:
