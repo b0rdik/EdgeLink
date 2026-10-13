@@ -137,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleKeepAwake() { applyKeepAwake(!state.keepAwakeEnabled) }
     private func buildWindow() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: min(740, max(630, (NSScreen.main?.visibleFrame.height ?? 850) - 70))), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "EdgeLink"
+        window.title = "EdgeLink"; window.toolbarStyle = .unifiedCompact
         window.minSize = NSSize(width: 680, height: 640); window.center(); window.isReleasedWhenClosed = false
         for screen in NSScreen.screens {
             let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
